@@ -252,13 +252,20 @@ public sealed class PptxLoader
             foreach (var shape in tree.Descendants<P.Shape>())
             {
                 // Skip slide image placeholder shapes that only mirror the slide
-                var nv = shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties;
-                var ph = nv?.PlaceholderShape;
-                // Skip the slide-image placeholder that mirrors the slide content
-                if (ph?.Type is not null &&
-                    (ph.Type == P.PlaceholderValues.SlideImage ||
-                     string.Equals(ph.Type.ToString(), "SlideImage", StringComparison.OrdinalIgnoreCase)))
-                    continue;
+                try
+                {
+                    var ph = shape.NonVisualShapeProperties?
+                        .ApplicationNonVisualDrawingProperties?
+                        .PlaceholderShape;
+                    var typeName = ph?.Type?.ToString() ?? string.Empty;
+                    if (typeName.Contains("SlideImage", StringComparison.OrdinalIgnoreCase) ||
+                        typeName.Equals("sldImg", StringComparison.OrdinalIgnoreCase))
+                        continue;
+                }
+                catch
+                {
+                    // ignore placeholder detection failures
+                }
 
                 var body = shape.TextBody;
                 if (body is null) continue;

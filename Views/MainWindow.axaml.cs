@@ -231,6 +231,10 @@ public partial class MainWindow : Window
                 _vm.OpenFileCommand.Execute(null);
                 e.Handled = true;
                 break;
+            case Key.S when e.KeyModifiers.HasFlag(KeyModifiers.Control):
+                _vm.SaveNowCommand.Execute(null);
+                e.Handled = true;
+                break;
         }
     }
 

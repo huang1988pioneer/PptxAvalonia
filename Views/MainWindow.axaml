@@ -37,6 +37,11 @@
         </MenuItem>
         <MenuItem Header="清除最近檔案" Command="{Binding ClearRecentCommand}" />
         <Separator />
+        <MenuItem Header="自動儲存（每 60 秒）" Command="{Binding ToggleAutoSaveCommand}"
+                  ToolTip.Tip="切換自動儲存；開啟後每 60 秒儲存工作階段與復原複本" />
+        <MenuItem Header="立即儲存工作階段" Command="{Binding SaveNowCommand}" InputGesture="Ctrl+S" />
+        <MenuItem Header="還原上次工作階段" Command="{Binding RestoreSessionCommand}" />
+        <Separator />
         <MenuItem Header="匯出目前投影片為 PNG…" Command="{Binding ExportCurrentSlideCommand}" />
         <MenuItem Header="匯出全部投影片為 PNG…" Command="{Binding ExportAllSlidesCommand}" />
         <Separator />
@@ -107,6 +112,10 @@
       <Grid ColumnDefinitions="Auto,*,Auto">
         <StackPanel Orientation="Horizontal" Spacing="6" Grid.Column="0">
           <Button Content="開啟" Command="{Binding OpenFileCommand}" Padding="12,6" FontWeight="SemiBold" />
+          <CheckBox Content="自動儲存(60秒)"
+                    IsChecked="{Binding AutoSaveEnabled, Mode=TwoWay}"
+                    VerticalAlignment="Center"
+                    ToolTip.Tip="每 60 秒儲存工作階段與自動復原複本" />
           <Separator Width="1" Margin="4,4" Background="{DynamicResource SystemControlForegroundBaseLowBrush}" />
           <Button Content="◀" Command="{Binding PreviousSlideCommand}" Width="36" Padding="0,6" ToolTip.Tip="上一張" />
           <TextBlock Text="{Binding PageLabel}" VerticalAlignment="Center" MinWidth="64" TextAlignment="Center" FontWeight="SemiBold" />
@@ -152,6 +161,8 @@
           <Border IsVisible="{Binding IsAutoPlaying}" Background="#1B5E20" CornerRadius="4" Padding="8,2">
             <TextBlock Text="{Binding AutoPlayStatus}" Foreground="White" FontSize="12" />
           </Border>
+          <TextBlock Text="{Binding AutoSaveStatus}" Opacity="0.8" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding LastAutoSaveText}" Opacity="0.65" VerticalAlignment="Center" />
           <TextBlock Text="{Binding DocumentInfo}" Opacity="0.7" VerticalAlignment="Center" />
           <TextBlock Text="{Binding ZoomLabel}" Opacity="0.75" VerticalAlignment="Center" />
           <TextBlock Text="{Binding PageLabel}" Opacity="0.7" VerticalAlignment="Center" />

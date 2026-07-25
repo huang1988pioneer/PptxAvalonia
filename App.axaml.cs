@@ -19,19 +19,32 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var vm = new MainViewModel();
-            desktop.MainWindow = new MainWindow
+            var window = new MainWindow
             {
                 DataContext = vm
             };
+            desktop.MainWindow = window;
 
-            // Support: PptxAvalonia.exe path\to\file.pptx
+            // Only open files from CLI args automatically.
+            // Session restore is deferred and failure-safe so it cannot block startup.
             var args = desktop.Args ?? [];
             var pptx = args.FirstOrDefault(a =>
                 a.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase) && File.Exists(a));
-            if (pptx is not null)
+
+            Dispatcher.UIThread.Post(async () =>
             {
-                Dispatcher.UIThread.Post(async () => await vm.LoadPathAsync(pptx));
-            }
+                try
+                {
+                    if (pptx is not null)
+                        await vm.LoadPathAsync(pptx);
+                    else
+                        await vm.TryRestoreSessionAsync();
+                }
+                catch (Exception ex)
+                {
+                    vm.StatusText = $"啟動開啟檔案失敗：{ex.Message}";
+                }
+            }, DispatcherPriority.Background);
         }
 
         base.OnFrameworkInitializationCompleted();

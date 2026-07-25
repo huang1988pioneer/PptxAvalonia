@@ -19,6 +19,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly SlideRenderer _renderer = new();
     private readonly SlideExportService _export = new();
     private readonly RecentFilesService _recent = new();
+    private readonly AppSettingsService _settings = new();
     private PptxPresentation? _presentation;
     private Window? _hostWindow;
     private SlideShowWindow? _slideShowWindow;
@@ -27,6 +28,8 @@ public partial class MainViewModel : ViewModelBase
     private double _manualZoom = 1.0;
     private readonly DispatcherTimer _autoPlayTimer;
     private readonly DispatcherTimer _hudTimer;
+    private readonly DispatcherTimer _autoSaveTimer;
+    private bool _autoSaveRunning;
 
     private const double ViewportPadding = 48;
 
@@ -84,6 +87,11 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private bool _showSlideShowHud = true;
     [ObservableProperty] private IBrush _slideShowBlankBrush = Brushes.Black;
 
+    // Auto-save (every 60 seconds when enabled)
+    [ObservableProperty] private bool _autoSaveEnabled;
+    [ObservableProperty] private string _autoSaveStatus = "自動儲存：關閉";
+    [ObservableProperty] private string _lastAutoSaveText = string.Empty;
+
     public MainViewModel()
     {
         _autoPlayTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(AutoPlayIntervalSeconds) };
@@ -95,10 +103,53 @@ public partial class MainViewModel : ViewModelBase
                 ShowSlideShowHud = false;
             _hudTimer.Stop();
         };
+
+        AutoSaveEnabled = _settings.AutoSaveEnabled;
+        var intervalSec = _settings.AutoSaveIntervalSeconds > 0 ? _settings.AutoSaveIntervalSeconds : 60;
+        _autoSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(intervalSec) };
+        _autoSaveTimer.Tick += OnAutoSaveTick;
+        UpdateAutoSaveStatusLabel();
         RefreshRecentFiles();
+
+        if (AutoSaveEnabled)
+            _autoSaveTimer.Start();
     }
 
     public void AttachWindow(Window window) => _hostWindow = window;
+
+    /// <summary>Restore last session if auto-save was on and a path still exists.</summary>
+    public async Task TryRestoreSessionAsync()
+    {
+        try
+        {
+            if (!AutoSaveEnabled) return;
+            var session = _settings.LoadSession();
+            if (session?.FilePath is not { Length: > 0 } path) return;
+
+            var openPath = File.Exists(path)
+                ? path
+                : (session.RecoverPath is { } r && File.Exists(r) ? r : null);
+            if (openPath is null)
+            {
+                StatusText = "找不到上次工作階段的檔案。";
+                return;
+            }
+
+            await LoadPathAsync(openPath);
+            if (HasDocument && session.SlideIndex >= 0 && session.SlideIndex < SlideCount)
+                GoToIndex(session.SlideIndex);
+
+            if (HasDocument)
+                StatusText = $"已還原工作階段：{FileName}（投影片 {CurrentIndex + 1}）";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"還原工作階段失敗：{ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task RestoreSessionAsync() => await TryRestoreSessionAsync();
 
     public void UpdateViewport(Size size)
     {
@@ -188,8 +239,25 @@ public partial class MainViewModel : ViewModelBase
             ]
         });
         if (files.Count == 0) return;
-        var path = files[0].TryGetLocalPath();
-        if (string.IsNullOrEmpty(path)) { StatusText = "無法取得檔案路徑。"; return; }
+        var file = files[0];
+        var path = file.TryGetLocalPath();
+        if (string.IsNullOrEmpty(path))
+        {
+            // Some providers don't expose a local path — copy stream to temp.
+            try
+            {
+                await using var stream = await file.OpenReadAsync();
+                path = Path.Combine(Path.GetTempPath(), $"pptx-open-{Guid.NewGuid():N}.pptx");
+                await using var fs = File.Create(path);
+                await stream.CopyToAsync(fs);
+            }
+            catch (Exception ex)
+            {
+                StatusText = $"無法讀取檔案：{ex.Message}";
+                return;
+            }
+        }
+
         await LoadPathAsync(path);
     }
 
@@ -250,6 +318,25 @@ public partial class MainViewModel : ViewModelBase
         EndSlideShowInternal();
         try
         {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                StatusText = "路徑為空，無法開啟。";
+                return;
+            }
+
+            path = Path.GetFullPath(path);
+            if (!File.Exists(path))
+            {
+                StatusText = $"找不到檔案：{path}";
+                return;
+            }
+
+            if (!path.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase))
+            {
+                StatusText = "僅支援 .pptx 檔案。";
+                return;
+            }
+
             IsBusy = true;
             StatusText = "正在載入…";
             CurrentSlideView = null;
@@ -291,6 +378,8 @@ public partial class MainViewModel : ViewModelBase
                     GoToIndex(0);
                     ApplyFitZoom(refresh: true);
                     StatusText = $"已載入 {SlideCount} 張投影片。F5 放映、Ctrl+F 尋找。";
+                    if (AutoSaveEnabled)
+                        PerformAutoSave(silent: true);
                 }
                 else
                 {
@@ -310,6 +399,101 @@ public partial class MainViewModel : ViewModelBase
             IsBusy = false;
             NotifyDocCommands();
         }
+    }
+
+    // ——— Auto-save ———
+
+    partial void OnAutoSaveEnabledChanged(bool value)
+    {
+        _settings.AutoSaveEnabled = value;
+        _settings.AutoSaveIntervalSeconds = 60;
+        _settings.SaveSettings();
+        UpdateAutoSaveStatusLabel();
+
+        if (value)
+        {
+            _autoSaveTimer.Interval = TimeSpan.FromSeconds(60);
+            _autoSaveTimer.Start();
+            if (HasDocument)
+                PerformAutoSave(silent: false);
+            else
+                StatusText = "已開啟自動儲存（每 60 秒）。開啟簡報後會自動備份工作階段。";
+        }
+        else
+        {
+            _autoSaveTimer.Stop();
+            LastAutoSaveText = string.Empty;
+            StatusText = "已關閉自動儲存。";
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleAutoSave()
+    {
+        AutoSaveEnabled = !AutoSaveEnabled;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanUseDocument))]
+    private void SaveNow()
+    {
+        PerformAutoSave(silent: false);
+    }
+
+    private void OnAutoSaveTick(object? sender, EventArgs e)
+    {
+        if (!AutoSaveEnabled || !HasDocument || IsBusy)
+            return;
+        PerformAutoSave(silent: true);
+    }
+
+    private void PerformAutoSave(bool silent)
+    {
+        if (_autoSaveRunning || !HasDocument || string.IsNullOrEmpty(FilePath))
+            return;
+
+        _autoSaveRunning = true;
+        try
+        {
+            var recover = _settings.SaveRecoverCopy(FilePath);
+            var session = new SessionState
+            {
+                FilePath = FilePath,
+                SlideIndex = CurrentIndex,
+                IsFitMode = IsFitMode,
+                ManualZoom = _manualZoom,
+                ShowNotesPane = ShowNotesPane,
+                ShowThumbnails = ShowThumbnails,
+                ViewMode = (int)ViewMode,
+                RecoverPath = recover,
+                SavedAt = DateTimeOffset.Now
+            };
+            _settings.SaveSession(session);
+
+            var time = DateTime.Now.ToString("HH:mm:ss");
+            LastAutoSaveText = $"上次自動儲存 {time}";
+            UpdateAutoSaveStatusLabel();
+
+            if (!silent)
+                StatusText = $"已自動儲存工作階段與復原複本（{time}）。";
+            else
+                StatusText = $"自動儲存完成 {time} · {PageLabel}";
+        }
+        catch (Exception ex)
+        {
+            if (!silent)
+                StatusText = $"自動儲存失敗：{ex.Message}";
+        }
+        finally
+        {
+            _autoSaveRunning = false;
+        }
+    }
+
+    private void UpdateAutoSaveStatusLabel()
+    {
+        AutoSaveStatus = AutoSaveEnabled
+            ? "自動儲存：開啟（每 60 秒）"
+            : "自動儲存：關閉";
     }
 
     // ——— Navigation ———
@@ -769,6 +953,7 @@ public partial class MainViewModel : ViewModelBase
         StartSlideShowFromBeginningCommand.NotifyCanExecuteChanged();
         PreviousSlideCommand.NotifyCanExecuteChanged();
         NextSlideCommand.NotifyCanExecuteChanged();
+        SaveNowCommand.NotifyCanExecuteChanged();
     }
 
     private void ExitFitMode()
@@ -867,6 +1052,7 @@ public partial class MainViewModel : ViewModelBase
     {
         if (!value) StopAutoPlayInternal();
         NotifyDocCommands();
+        SaveNowCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnIsBusyChanged(bool value) => NotifyDocCommands();
