@@ -121,23 +121,14 @@ jobs:
           $sc = "artifacts/PptxAvalonia-$v-win-x64-self-contained.zip"
           $fd = "artifacts/PptxAvalonia-$v-win-x64-framework-dependent.zip"
 
-          # Replace existing release if present
-          gh release view $v --repo "${{ github.repository }}" 2>$null
-          if ($LASTEXITCODE -eq 0) {
-            gh release delete $v --repo "${{ github.repository }}" --yes --cleanup-tag 2>$null
-            # tag may still exist from push; recreate release on existing tag when push event
-          }
+          $exists = $false
+          gh release view $v --repo "${{ github.repository }}" 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) { $exists = $true }
 
-          if ("${{ github.event_name }}" -eq "push") {
-            gh release create $v $sc $fd `
-              --repo "${{ github.repository }}" `
-              --title $v `
-              --notes-file artifacts/RELEASE_NOTES.md `
-              --verify-tag
+          if ($exists) {
+            gh release upload $v $sc $fd --repo "${{ github.repository }}" --clobber
+            gh release edit $v --repo "${{ github.repository }}" --notes-file artifacts/RELEASE_NOTES.md --title $v
           } else {
-            # workflow_dispatch: ensure tag exists on main
-            git tag -f $v
-            git push origin $v --force
             gh release create $v $sc $fd `
               --repo "${{ github.repository }}" `
               --title $v `

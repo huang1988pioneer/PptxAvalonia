@@ -80,7 +80,7 @@ Compress-Archive -Path "$artifacts\fd-pack\*" -DestinationPath $fdZip -Force
 
 # Signature report
 $signedNote = "unsigned"
-$exe = "$artifacts\sc-pack\PptxAvalonia.exe"
+$exe = Join-Path $artifacts "sc-pack\PptxAvalonia.exe"
 if (Test-Path $exe) {
     try {
         $sig = Get-AuthenticodeSignature $exe
@@ -91,17 +91,19 @@ if (Test-Path $exe) {
     }
 }
 
-@"
-# PptxAvalonia $Version package report
-
-- Self-contained: $scZip
-- Framework-dependent: $fdZip
-- Authenticode: $signedNote
-- Built: $([DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss")) UTC
-"@ | Set-Content "$artifacts\PACKAGE_REPORT.md" -Encoding UTF8
+$builtUtc = [DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
+$report = @(
+    "# PptxAvalonia $Version package report",
+    "",
+    "* Self-contained: $scZip",
+    "* Framework-dependent: $fdZip",
+    "* Authenticode: $signedNote",
+    "* Built: $builtUtc UTC"
+) -join [Environment]::NewLine
+Set-Content -Path (Join-Path $artifacts "PACKAGE_REPORT.md") -Value $report -Encoding UTF8
 
 Write-Host "Self-contained pack:"
-Get-ChildItem "$artifacts\sc-pack" | ForEach-Object { Write-Host "  $($_.Name)" }
+Get-ChildItem (Join-Path $artifacts "sc-pack") | ForEach-Object { Write-Host "  $($_.Name)" }
 Write-Host "Zips:"
-Get-ChildItem "$artifacts\*.zip" | ForEach-Object { Write-Host "  $($_.Name) ($([math]::Round($_.Length/1MB,2)) MB)" }
+Get-ChildItem (Join-Path $artifacts "*.zip") | ForEach-Object { Write-Host "  $($_.Name) ($([math]::Round($_.Length/1MB,2)) MB)" }
 Write-Host "Authenticode: $signedNote"
