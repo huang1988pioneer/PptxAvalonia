@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
@@ -29,7 +30,6 @@ public partial class MainWindow : Window
     {
         if (_vm is not null)
             _vm.PropertyChanged -= OnViewModelPropertyChanged;
-
         _vm = DataContext as MainViewModel;
         if (_vm is not null)
             _vm.PropertyChanged += OnViewModelPropertyChanged;
@@ -59,7 +59,9 @@ public partial class MainWindow : Window
             or nameof(MainViewModel.SlideDisplayHeight)
             or nameof(MainViewModel.HasDocument)
             or nameof(MainViewModel.CurrentSlideView)
-            or nameof(MainViewModel.Zoom))
+            or nameof(MainViewModel.Zoom)
+            or nameof(MainViewModel.IsNormalView)
+            or nameof(MainViewModel.ShowNotesPane))
         {
             Dispatcher.UIThread.Post(ApplyPreviewLayout, DispatcherPriority.Render);
         }
@@ -67,50 +69,34 @@ public partial class MainWindow : Window
 
     private void ReportViewportAndLayout()
     {
-        if (_previewHost is null || _vm is null)
-            return;
-
+        if (_previewHost is null || _vm is null) return;
         var size = _previewHost.Bounds.Size;
         if (size.Width > 1 && size.Height > 1)
             _vm.UpdateViewport(size);
-
         ApplyPreviewLayout();
     }
 
-    /// <summary>
-    /// Fit: size Viewbox to the scroller viewport so Uniform shows the entire page.
-    /// Manual: fixed display size; scroller enables panning when larger than viewport.
-    /// </summary>
     private void ApplyPreviewLayout()
     {
-        if (_viewbox is null || _scroller is null || _vm is null || !_vm.HasDocument)
+        if (_viewbox is null || _scroller is null || _vm is null || !_vm.HasDocument || !_vm.IsNormalView)
             return;
 
         if (_vm.IsFitMode)
         {
-            // ScrollViewer content only sizes to children; pin Viewbox to viewport
-            // so Stretch=Uniform can shrink the full slide into view.
             var viewport = _scroller.Viewport;
             var host = _previewHost?.Bounds.Size ?? default;
-            var pad = 48.0; // matches ScrollViewer Padding 24*2
-
-            var availW = viewport.Width > 1
-                ? Math.Max(40, viewport.Width)
-                : Math.Max(40, host.Width - pad);
-            var availH = viewport.Height > 1
-                ? Math.Max(40, viewport.Height)
-                : Math.Max(40, host.Height - pad);
+            var pad = 40.0;
+            var availW = viewport.Width > 1 ? Math.Max(40, viewport.Width) : Math.Max(40, host.Width - pad);
+            var availH = viewport.Height > 1 ? Math.Max(40, viewport.Height) : Math.Max(40, host.Height - pad);
 
             _viewbox.Width = availW;
             _viewbox.Height = availH;
             _viewbox.HorizontalAlignment = HorizontalAlignment.Center;
             _viewbox.VerticalAlignment = VerticalAlignment.Center;
             _viewbox.Stretch = Avalonia.Media.Stretch.Uniform;
-
             _scroller.HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled;
             _scroller.VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled;
 
-            // Keep zoom label accurate
             if (_vm.SlideNativeWidth > 0 && _vm.SlideNativeHeight > 0)
             {
                 var scale = Math.Min(availW / _vm.SlideNativeWidth, availH / _vm.SlideNativeHeight);
@@ -124,10 +110,18 @@ public partial class MainWindow : Window
             _viewbox.HorizontalAlignment = HorizontalAlignment.Center;
             _viewbox.VerticalAlignment = VerticalAlignment.Center;
             _viewbox.Stretch = Avalonia.Media.Stretch.Fill;
-
             _scroller.HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto;
             _scroller.VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto;
         }
+    }
+
+    private void OnSorterItemPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not Border { DataContext: SlideItemViewModel item } || _vm is null)
+            return;
+        _vm.SelectedSlide = item;
+        _vm.SetNormalViewCommand.Execute(null);
+        e.Handled = true;
     }
 
     private void OnDragOver(object? sender, DragEventArgs e)
@@ -137,9 +131,7 @@ public partial class MainWindow : Window
 
     private async void OnDrop(object? sender, DragEventArgs e)
     {
-        if (_vm is null)
-            return;
-
+        if (_vm is null) return;
         var path = await TryGetPptxPathAsync(e);
         if (path is not null)
             await _vm.LoadPathAsync(path);
@@ -147,37 +139,43 @@ public partial class MainWindow : Window
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (_vm is null)
+        if (_vm is null) return;
+
+        // Don't steal keys while typing in TextBox
+        if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox)
             return;
 
         switch (e.Key)
         {
-            case Key.Left:
-            case Key.PageUp:
-            case Key.Up:
+            case Key.Left or Key.PageUp or Key.Up:
                 _vm.PreviousSlideCommand.Execute(null);
                 e.Handled = true;
                 break;
-            case Key.Right:
-            case Key.PageDown:
-            case Key.Down:
+            case Key.Right or Key.PageDown or Key.Down:
                 _vm.NextSlideCommand.Execute(null);
                 e.Handled = true;
                 break;
             case Key.Space:
-                // Space: during auto-play pause; otherwise next slide
                 if (_vm.IsAutoPlaying)
                     _vm.StopAutoPlayCommand.Execute(null);
                 else
                     _vm.NextSlideCommand.Execute(null);
                 e.Handled = true;
                 break;
+            case Key.Home:
+                _vm.FirstSlideCommand.Execute(null);
+                e.Handled = true;
+                break;
+            case Key.End:
+                _vm.LastSlideCommand.Execute(null);
+                e.Handled = true;
+                break;
             case Key.F5 when e.KeyModifiers.HasFlag(KeyModifiers.Shift):
-                _vm.StartAutoPlayFromBeginningCommand.Execute(null);
+                _vm.StartSlideShowCommand.Execute(null);
                 e.Handled = true;
                 break;
             case Key.F5:
-                _vm.ToggleAutoPlayCommand.Execute(null);
+                _vm.StartSlideShowFromBeginningCommand.Execute(null);
                 e.Handled = true;
                 break;
             case Key.Escape:
@@ -186,6 +184,34 @@ public partial class MainWindow : Window
                     _vm.StopAutoPlayCommand.Execute(null);
                     e.Handled = true;
                 }
+                break;
+            case Key.F when e.KeyModifiers.HasFlag(KeyModifiers.Control):
+                _vm.ToggleFindBarCommand.Execute(null);
+                e.Handled = true;
+                break;
+            case Key.F3 when e.KeyModifiers.HasFlag(KeyModifiers.Shift):
+                _vm.FindPreviousCommand.Execute(null);
+                e.Handled = true;
+                break;
+            case Key.F3:
+                _vm.FindNextCommand.Execute(null);
+                e.Handled = true;
+                break;
+            case Key.G when e.KeyModifiers.HasFlag(KeyModifiers.Control):
+                _vm.GoToSlideCommand.Execute(null);
+                e.Handled = true;
+                break;
+            case Key.D1 when e.KeyModifiers.HasFlag(KeyModifiers.Control):
+                _vm.SetNormalViewCommand.Execute(null);
+                e.Handled = true;
+                break;
+            case Key.D2 when e.KeyModifiers.HasFlag(KeyModifiers.Control):
+                _vm.SetSorterViewCommand.Execute(null);
+                e.Handled = true;
+                break;
+            case Key.D3 when e.KeyModifiers.HasFlag(KeyModifiers.Control):
+                _vm.SetOutlineViewCommand.Execute(null);
+                e.Handled = true;
                 break;
             case Key.OemPlus when e.KeyModifiers.HasFlag(KeyModifiers.Control):
             case Key.Add when e.KeyModifiers.HasFlag(KeyModifiers.Control):
@@ -201,10 +227,6 @@ public partial class MainWindow : Window
                 _vm.ZoomResetCommand.Execute(null);
                 e.Handled = true;
                 break;
-            case Key.D1 when e.KeyModifiers.HasFlag(KeyModifiers.Control):
-                _vm.FitToWindowCommand.Execute(null);
-                e.Handled = true;
-                break;
             case Key.O when e.KeyModifiers.HasFlag(KeyModifiers.Control):
                 _vm.OpenFileCommand.Execute(null);
                 e.Handled = true;
@@ -214,50 +236,34 @@ public partial class MainWindow : Window
 
     private static bool HasPptx(DragEventArgs e)
     {
-        if (!e.Data.Contains(DataFormats.Files))
-            return false;
-
+        if (!e.Data.Contains(DataFormats.Files)) return false;
         var items = e.Data.GetFiles();
         if (items is null) return false;
-
         foreach (var item in items)
         {
-            var name = item.Name ?? string.Empty;
-            if (name.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase))
+            if ((item.Name ?? "").EndsWith(".pptx", StringComparison.OrdinalIgnoreCase))
                 return true;
         }
-
         return false;
     }
 
     private static async Task<string?> TryGetPptxPathAsync(DragEventArgs e)
     {
-        if (!e.Data.Contains(DataFormats.Files))
-            return null;
-
+        if (!e.Data.Contains(DataFormats.Files)) return null;
         var items = e.Data.GetFiles();
         if (items is null) return null;
-
         foreach (var item in items)
         {
-            if (item is not IStorageFile file)
-                continue;
-
-            var name = file.Name ?? string.Empty;
-            if (!name.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase))
-                continue;
-
+            if (item is not IStorageFile file) continue;
+            if (!(file.Name ?? "").EndsWith(".pptx", StringComparison.OrdinalIgnoreCase)) continue;
             var path = file.TryGetLocalPath();
-            if (!string.IsNullOrEmpty(path))
-                return path;
-
+            if (!string.IsNullOrEmpty(path)) return path;
             await using var stream = await file.OpenReadAsync();
             var temp = Path.Combine(Path.GetTempPath(), $"pptx-preview-{Guid.NewGuid():N}.pptx");
             await using var fs = File.Create(temp);
             await stream.CopyToAsync(fs);
             return temp;
         }
-
         return null;
     }
 }

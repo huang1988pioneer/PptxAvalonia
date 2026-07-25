@@ -1,15 +1,16 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:PptxAvalonia.ViewModels"
+        xmlns:models="using:PptxAvalonia.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+        mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="860"
         x:Class="PptxAvalonia.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="{Binding Title}"
-        Width="1280" Height="820"
-        MinWidth="900" MinHeight="600"
+        Width="1360" Height="900"
+        MinWidth="960" MinHeight="640"
         DragDrop.AllowDrop="True">
 
   <Design.DataContext>
@@ -17,6 +18,86 @@
   </Design.DataContext>
 
   <DockPanel>
+    <!-- Menu (PowerPoint-like) -->
+    <Menu DockPanel.Dock="Top">
+      <MenuItem Header="檔案(_F)">
+        <MenuItem Header="開啟(_O)…" Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O" />
+        <MenuItem Header="最近開啟的檔案" ItemsSource="{Binding RecentFiles}">
+          <MenuItem.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Text="{Binding}" />
+            </DataTemplate>
+          </MenuItem.ItemTemplate>
+          <MenuItem.Styles>
+            <Style Selector="MenuItem">
+              <Setter Property="Command" Value="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenRecentCommand}" />
+              <Setter Property="CommandParameter" Value="{Binding}" />
+            </Style>
+          </MenuItem.Styles>
+        </MenuItem>
+        <MenuItem Header="清除最近檔案" Command="{Binding ClearRecentCommand}" />
+        <Separator />
+        <MenuItem Header="匯出目前投影片為 PNG…" Command="{Binding ExportCurrentSlideCommand}" />
+        <MenuItem Header="匯出全部投影片為 PNG…" Command="{Binding ExportAllSlidesCommand}" />
+        <Separator />
+        <MenuItem Header="關閉(_C)" Command="{Binding CloseDocumentCommand}" />
+        <MenuItem Header="結束(_X)" Command="{Binding ExitAppCommand}" InputGesture="Alt+F4" />
+      </MenuItem>
+      <MenuItem Header="檢視(_V)">
+        <MenuItem Header="一般(_N)" Command="{Binding SetNormalViewCommand}" InputGesture="Ctrl+1" />
+        <MenuItem Header="投影片瀏覽(_S)" Command="{Binding SetSorterViewCommand}" InputGesture="Ctrl+2" />
+        <MenuItem Header="大綱(_L)" Command="{Binding SetOutlineViewCommand}" InputGesture="Ctrl+3" />
+        <Separator />
+        <MenuItem Header="縮圖窗格" Command="{Binding ToggleThumbnailsCommand}" />
+        <MenuItem Header="備忘稿窗格" Command="{Binding ToggleNotesPaneCommand}" />
+        <Separator />
+        <MenuItem Header="符合視窗" Command="{Binding FitToWindowCommand}" />
+        <MenuItem Header="實際大小 100%" Command="{Binding ZoomResetCommand}" InputGesture="Ctrl+0" />
+        <MenuItem Header="放大" Command="{Binding ZoomInCommand}" InputGesture="Ctrl+Plus" />
+        <MenuItem Header="縮小" Command="{Binding ZoomOutCommand}" InputGesture="Ctrl+Minus" />
+      </MenuItem>
+      <MenuItem Header="投影片放映(_S)">
+        <MenuItem Header="從頭開始放映" Command="{Binding StartSlideShowFromBeginningCommand}" InputGesture="F5" />
+        <MenuItem Header="從目前投影片放映" Command="{Binding StartSlideShowCommand}" InputGesture="Shift+F5" />
+        <Separator />
+        <MenuItem Header="{Binding AutoPlayButtonText}" Command="{Binding ToggleAutoPlayCommand}" />
+        <MenuItem Header="從頭自動放映" Command="{Binding StartAutoPlayFromBeginningCommand}" />
+        <MenuItem Header="停止自動放映" Command="{Binding StopAutoPlayCommand}" />
+      </MenuItem>
+      <MenuItem Header="編輯(_E)">
+        <MenuItem Header="尋找(_F)…" Command="{Binding ToggleFindBarCommand}" InputGesture="Ctrl+F" />
+        <MenuItem Header="下一個" Command="{Binding FindNextCommand}" InputGesture="F3" />
+        <MenuItem Header="上一個" Command="{Binding FindPreviousCommand}" InputGesture="Shift+F3" />
+        <Separator />
+        <MenuItem Header="移至投影片…" Command="{Binding GoToSlideCommand}" InputGesture="Ctrl+G" />
+        <MenuItem Header="第一張" Command="{Binding FirstSlideCommand}" InputGesture="Home" />
+        <MenuItem Header="最後一張" Command="{Binding LastSlideCommand}" InputGesture="End" />
+      </MenuItem>
+      <MenuItem Header="說明(_H)">
+        <MenuItem Header="關於 PptxAvalonia" Command="{Binding ShowAboutCommand}" />
+      </MenuItem>
+    </Menu>
+
+    <!-- Find bar -->
+    <Border DockPanel.Dock="Top"
+            IsVisible="{Binding ShowFindBar}"
+            Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="10,6">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <TextBlock Text="尋找" VerticalAlignment="Center" FontWeight="SemiBold" />
+        <TextBox Text="{Binding FindQuery}"
+                 Width="220"
+                 Watermark="投影片文字 / 備忘稿"
+                 VerticalAlignment="Center" />
+        <Button Content="下一個" Command="{Binding FindNextCommand}" Padding="10,4" />
+        <Button Content="上一個" Command="{Binding FindPreviousCommand}" Padding="10,4" />
+        <TextBlock Text="{Binding FindStatus}" VerticalAlignment="Center" Opacity="0.85" />
+        <Button Content="關閉" Command="{Binding ToggleFindBarCommand}" Padding="10,4" />
+      </StackPanel>
+    </Border>
+
     <!-- Toolbar -->
     <Border DockPanel.Dock="Top"
             Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
@@ -24,72 +105,37 @@
             BorderThickness="0,0,0,1"
             Padding="10,8">
       <Grid ColumnDefinitions="Auto,*,Auto">
-        <StackPanel Orientation="Horizontal" Spacing="8" Grid.Column="0">
-          <Button Content="開啟 PPTX…"
-                  Command="{Binding OpenFileCommand}"
-                  Padding="14,6"
-                  FontWeight="SemiBold" />
-          <Separator Width="1" Margin="6,4" Background="{DynamicResource SystemControlForegroundBaseLowBrush}" />
-          <Button Content="◀ 上一張"
-                  Command="{Binding PreviousSlideCommand}"
-                  Padding="10,6" />
-          <TextBlock Text="{Binding PageLabel}"
-                     VerticalAlignment="Center"
-                     MinWidth="72"
-                     TextAlignment="Center"
-                     FontWeight="SemiBold" />
-          <Button Content="下一張 ▶"
-                  Command="{Binding NextSlideCommand}"
-                  Padding="10,6" />
-          <Separator Width="1" Margin="6,4" Background="{DynamicResource SystemControlForegroundBaseLowBrush}" />
-          <Button Content="{Binding AutoPlayButtonText}"
-                  Command="{Binding ToggleAutoPlayCommand}"
-                  Padding="12,6"
-                  FontWeight="SemiBold"
-                  ToolTip.Tip="開始 / 停止自動放映（F5）" />
-          <Button Content="從頭放映"
-                  Command="{Binding StartAutoPlayFromBeginningCommand}"
-                  Padding="10,6"
-                  ToolTip.Tip="從第一張開始自動放映（Shift+F5）" />
-          <TextBlock Text="間隔"
-                     VerticalAlignment="Center"
-                     Opacity="0.8"
-                     Margin="4,0,0,0" />
-          <ComboBox ItemsSource="{Binding IntervalOptions}"
-                    SelectedItem="{Binding AutoPlayIntervalSeconds}"
-                    Width="64"
-                    MinHeight="32"
-                    VerticalAlignment="Center"
-                    ToolTip.Tip="每張投影片停留秒數" />
-          <TextBlock Text="秒"
-                     VerticalAlignment="Center"
-                     Opacity="0.8" />
-          <CheckBox Content="循環"
-                    IsChecked="{Binding LoopAutoPlay}"
-                    VerticalAlignment="Center"
-                    ToolTip.Tip="播到最後一張後回到第一張" />
+        <StackPanel Orientation="Horizontal" Spacing="6" Grid.Column="0">
+          <Button Content="開啟" Command="{Binding OpenFileCommand}" Padding="12,6" FontWeight="SemiBold" />
+          <Separator Width="1" Margin="4,4" Background="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+          <Button Content="◀" Command="{Binding PreviousSlideCommand}" Width="36" Padding="0,6" ToolTip.Tip="上一張" />
+          <TextBlock Text="{Binding PageLabel}" VerticalAlignment="Center" MinWidth="64" TextAlignment="Center" FontWeight="SemiBold" />
+          <Button Content="▶" Command="{Binding NextSlideCommand}" Width="36" Padding="0,6" ToolTip.Tip="下一張" />
+          <Button Content="移至…" Command="{Binding GoToSlideCommand}" Padding="8,6" />
+          <Separator Width="1" Margin="4,4" Background="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+          <Button Content="一般" Command="{Binding SetNormalViewCommand}" Padding="8,6" />
+          <Button Content="瀏覽" Command="{Binding SetSorterViewCommand}" Padding="8,6" />
+          <Button Content="大綱" Command="{Binding SetOutlineViewCommand}" Padding="8,6" />
+          <Separator Width="1" Margin="4,4" Background="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+          <Button Content="從目前放映" Command="{Binding StartSlideShowCommand}" Padding="10,6" FontWeight="SemiBold"
+                  ToolTip.Tip="全螢幕放映（Shift+F5）" />
+          <Button Content="從頭放映" Command="{Binding StartSlideShowFromBeginningCommand}" Padding="10,6"
+                  ToolTip.Tip="全螢幕從頭放映（F5）" />
+          <Button Content="{Binding AutoPlayButtonText}" Command="{Binding ToggleAutoPlayCommand}" Padding="10,6" />
+          <ComboBox ItemsSource="{Binding IntervalOptions}" SelectedItem="{Binding AutoPlayIntervalSeconds}"
+                    Width="60" MinHeight="30" ToolTip.Tip="自動放映間隔（秒）" />
+          <CheckBox Content="循環" IsChecked="{Binding LoopAutoPlay}" VerticalAlignment="Center" />
         </StackPanel>
 
-        <TextBlock Grid.Column="1"
-                   Text="{Binding FileName}"
-                   VerticalAlignment="Center"
-                   HorizontalAlignment="Center"
-                   Opacity="0.85"
-                   TextTrimming="CharacterEllipsis"
-                   Margin="16,0" />
+        <TextBlock Grid.Column="1" Text="{Binding FileName}" VerticalAlignment="Center"
+                   HorizontalAlignment="Center" Opacity="0.85" TextTrimming="CharacterEllipsis" Margin="12,0" />
 
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
-          <Button Content="符合視窗"
-                  Command="{Binding FitToWindowCommand}"
-                  Padding="10,6"
-                  ToolTip.Tip="完整顯示整張投影片（Ctrl+1）" />
-          <Button Content="−" Command="{Binding ZoomOutCommand}" Width="36" Padding="0,6" ToolTip.Tip="縮小 (Ctrl+-)" />
-          <Button Content="{Binding ZoomLabel}"
-                  Command="{Binding ZoomResetCommand}"
-                  MinWidth="96"
-                  Padding="8,6"
-                  ToolTip.Tip="還原 100% 原始大小 (Ctrl+0)" />
-          <Button Content="＋" Command="{Binding ZoomInCommand}" Width="36" Padding="0,6" ToolTip.Tip="放大 (Ctrl++)" />
+          <Button Content="匯出" Command="{Binding ExportCurrentSlideCommand}" Padding="10,6" ToolTip.Tip="匯出目前投影片 PNG" />
+          <Button Content="符合" Command="{Binding FitToWindowCommand}" Padding="8,6" />
+          <Button Content="−" Command="{Binding ZoomOutCommand}" Width="32" Padding="0,6" />
+          <Button Content="{Binding ZoomLabel}" Command="{Binding ZoomResetCommand}" MinWidth="88" Padding="8,6" />
+          <Button Content="＋" Command="{Binding ZoomInCommand}" Width="32" Padding="0,6" />
         </StackPanel>
       </Grid>
     </Border>
@@ -101,126 +147,156 @@
             BorderThickness="0,1,0,0"
             Padding="12,6">
       <Grid ColumnDefinitions="*,Auto">
-        <TextBlock Text="{Binding StatusText}"
-                   VerticalAlignment="Center"
-                   Opacity="0.9"
-                   TextTrimming="CharacterEllipsis" />
+        <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" Opacity="0.9" TextTrimming="CharacterEllipsis" />
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
-          <Border IsVisible="{Binding IsAutoPlaying}"
-                  Background="#1B5E20"
-                  CornerRadius="4"
-                  Padding="8,2">
-            <TextBlock Text="{Binding AutoPlayStatus}"
-                       Foreground="White"
-                       FontSize="12"
-                       VerticalAlignment="Center" />
+          <Border IsVisible="{Binding IsAutoPlaying}" Background="#1B5E20" CornerRadius="4" Padding="8,2">
+            <TextBlock Text="{Binding AutoPlayStatus}" Foreground="White" FontSize="12" />
           </Border>
-          <TextBlock Text="{Binding ZoomLabel}" VerticalAlignment="Center" Opacity="0.75" />
-          <TextBlock Text="{Binding PageLabel}" VerticalAlignment="Center" Opacity="0.7" />
-          <TextBlock IsVisible="{Binding IsBusy}" Text="載入中…" VerticalAlignment="Center" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding DocumentInfo}" Opacity="0.7" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding ZoomLabel}" Opacity="0.75" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding PageLabel}" Opacity="0.7" VerticalAlignment="Center" />
         </StackPanel>
       </Grid>
     </Border>
 
     <!-- Body -->
-    <Grid ColumnDefinitions="220,*">
-      <!-- Thumbnail rail -->
-      <Border Grid.Column="0"
-              Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
-              BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
-              BorderThickness="0,0,1,0">
-        <DockPanel>
-          <TextBlock DockPanel.Dock="Top"
-                     Text="投影片"
-                     FontWeight="SemiBold"
-                     Margin="12,10,12,6"
-                     Opacity="0.8" />
-          <ListBox ItemsSource="{Binding Slides}"
-                   SelectedItem="{Binding SelectedSlide}"
-                   Background="Transparent"
-                   Padding="8,0,8,8">
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="vm:SlideItemViewModel">
-                <Border Margin="0,0,0,10"
-                        Padding="6"
-                        CornerRadius="6"
-                        Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
-                  <DockPanel>
-                    <TextBlock DockPanel.Dock="Bottom"
-                               Text="{Binding DisplayNumber}"
-                               HorizontalAlignment="Center"
-                               Margin="0,6,0,0"
-                               Opacity="0.75"
-                               FontSize="12" />
-                    <Border Background="White"
-                            CornerRadius="3"
-                            BoxShadow="0 1 4 #40000000"
-                            ClipToBounds="True"
-                            HorizontalAlignment="Center">
-                      <ContentControl Content="{Binding Thumbnail}" />
-                    </Border>
-                  </DockPanel>
-                </Border>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-        </DockPanel>
-      </Border>
+    <Grid>
+      <!-- Empty -->
+      <StackPanel IsVisible="{Binding !HasDocument}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+        <TextBlock Text="PptxAvalonia" FontSize="30" FontWeight="Bold" HorizontalAlignment="Center" />
+        <TextBlock Text="開啟 .pptx · 拖放檔案 · 全螢幕放映 · 備忘稿 · 尋找 · 匯出 PNG"
+                   FontSize="14" Opacity="0.75" HorizontalAlignment="Center" />
+        <Button Content="開啟簡報…" Command="{Binding OpenFileCommand}" HorizontalAlignment="Center" Margin="0,8,0,0" Padding="20,10" />
+      </StackPanel>
 
-      <!-- Preview stage: single visual tree so the slide control has one parent -->
-      <Border x:Name="PreviewHost"
-              Grid.Column="1"
-              Background="#2B2B2B">
-        <Grid>
-          <!-- Empty state -->
-          <StackPanel IsVisible="{Binding !HasDocument}"
-                      HorizontalAlignment="Center"
-                      VerticalAlignment="Center"
-                      Spacing="12">
-            <TextBlock Text="PPTX 預覽"
-                       FontSize="28"
-                       FontWeight="Bold"
-                       Foreground="White"
-                       HorizontalAlignment="Center" />
-            <TextBlock Text="開啟 .pptx，或把檔案拖放到此視窗"
-                       FontSize="15"
-                       Foreground="#CCCCCC"
-                       HorizontalAlignment="Center" />
-            <Button Content="選擇檔案…"
-                    Command="{Binding OpenFileCommand}"
-                    HorizontalAlignment="Center"
-                    Margin="0,8,0,0"
-                    Padding="20,10" />
-          </StackPanel>
+      <!-- Normal view -->
+      <Grid IsVisible="{Binding IsNormalView}" ColumnDefinitions="Auto,*,Auto" RowDefinitions="*,Auto">
+        <!-- Thumbnails -->
+        <Border Grid.RowSpan="2" Grid.Column="0" Width="210"
+                IsVisible="{Binding ShowThumbnails}"
+                Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                BorderThickness="0,0,1,0">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="投影片" FontWeight="SemiBold" Margin="12,10,12,6" Opacity="0.8" />
+            <ListBox ItemsSource="{Binding Slides}" SelectedItem="{Binding SelectedSlide}" Background="Transparent" Padding="8">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:SlideItemViewModel">
+                  <Border Margin="0,0,0,8" Padding="6" CornerRadius="6"
+                          Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+                    <Panel>
+                      <Border IsVisible="{Binding IsFindMatch}" BorderBrush="#4CAF50" BorderThickness="2" CornerRadius="6" />
+                      <DockPanel>
+                        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="4" Margin="0,6,0,0">
+                          <TextBlock Text="{Binding DisplayNumber}" Opacity="0.75" FontSize="12" />
+                          <TextBlock Text="📝" IsVisible="{Binding HasNotes}" FontSize="11" Opacity="0.8" />
+                        </StackPanel>
+                        <Border Background="White" CornerRadius="3" BoxShadow="0 1 4 #40000000" ClipToBounds="True" HorizontalAlignment="Center">
+                          <ContentControl Content="{Binding Thumbnail}" />
+                        </Border>
+                      </DockPanel>
+                    </Panel>
+                  </Border>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+        </Border>
 
-          <!--
-            Fit mode: Viewbox Uniform fills the host → entire page visible.
-            Manual mode: fixed display size inside ScrollViewer → scroll + exact zoom.
-          -->
-          <ScrollViewer x:Name="PreviewScroller"
-                        IsVisible="{Binding HasDocument}"
-                        Padding="24"
-                        HorizontalScrollBarVisibility="Auto"
-                        VerticalScrollBarVisibility="Auto">
-            <Viewbox x:Name="SlideViewbox"
-                     Stretch="Uniform"
-                     StretchDirection="Both"
-                     HorizontalAlignment="Center"
-                     VerticalAlignment="Center">
-              <Border Background="White"
-                      BoxShadow="0 8 24 #66000000"
-                      CornerRadius="2"
-                      ClipToBounds="True"
-                      Width="{Binding SlideNativeWidth}"
-                      Height="{Binding SlideNativeHeight}">
+        <!-- Preview -->
+        <Border x:Name="PreviewHost" Grid.Column="1" Grid.Row="0" Background="#2B2B2B">
+          <ScrollViewer x:Name="PreviewScroller" Padding="20"
+                        HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                        IsVisible="{Binding HasDocument}">
+            <Viewbox x:Name="SlideViewbox" Stretch="Uniform" StretchDirection="Both"
+                     HorizontalAlignment="Center" VerticalAlignment="Center">
+              <Border Background="White" BoxShadow="0 8 24 #66000000" CornerRadius="2" ClipToBounds="True"
+                      Width="{Binding SlideNativeWidth}" Height="{Binding SlideNativeHeight}">
                 <ContentControl Content="{Binding CurrentSlideView}"
-                                Width="{Binding SlideNativeWidth}"
-                                Height="{Binding SlideNativeHeight}" />
+                                Width="{Binding SlideNativeWidth}" Height="{Binding SlideNativeHeight}" />
               </Border>
             </Viewbox>
           </ScrollViewer>
-        </Grid>
-      </Border>
+        </Border>
+
+        <!-- Outline side (optional right) -->
+        <Border Grid.Column="2" Grid.Row="0" Width="240"
+                Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                BorderThickness="1,0,0,0"
+                IsVisible="{Binding HasDocument}">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="此頁文字" FontWeight="SemiBold" Margin="12,10,12,6" Opacity="0.8" />
+            <ScrollViewer Padding="12,0,12,12">
+              <TextBlock Text="{Binding CurrentOutline}" TextWrapping="Wrap" Opacity="0.9" LineHeight="22" />
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
+
+        <!-- Notes pane -->
+        <Border Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="1" Height="140"
+                IsVisible="{Binding ShowNotesPane}"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                BorderThickness="0,1,0,0">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="備忘稿（講者備註）" FontWeight="SemiBold" Margin="12,8,12,4" Opacity="0.85" />
+            <ScrollViewer Padding="12,0,12,10">
+              <TextBlock Text="{Binding CurrentNotes}" TextWrapping="Wrap" Opacity="0.95" LineHeight="22" />
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
+      </Grid>
+
+      <!-- Sorter view -->
+      <ScrollViewer IsVisible="{Binding IsSorterView}" Padding="16" Background="#1E1E1E">
+        <ItemsControl ItemsSource="{Binding Slides}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:SlideItemViewModel">
+              <Border Margin="10" Padding="8" CornerRadius="8" Width="220"
+                      Background="#333333" Cursor="Hand"
+                      PointerPressed="OnSorterItemPressed">
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Bottom" Text="{Binding Title}" Margin="0,8,0,0"
+                             TextTrimming="CharacterEllipsis" Foreground="White" FontSize="12" />
+                  <TextBlock DockPanel.Dock="Top" Text="{Binding DisplayNumber}" Foreground="#AAAAAA" FontSize="12" Margin="0,0,0,6" />
+                  <Border Background="White" CornerRadius="3" ClipToBounds="True" HorizontalAlignment="Center">
+                    <ContentControl Content="{Binding Thumbnail}" />
+                  </Border>
+                </DockPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+      <!-- Outline view -->
+      <ListBox IsVisible="{Binding IsOutlineView}"
+               ItemsSource="{Binding Slides}"
+               SelectedItem="{Binding SelectedSlide}"
+               Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+               Padding="8">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:SlideItemViewModel">
+            <Border Padding="10,8" Margin="0,0,0,6" CornerRadius="6"
+                    Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+              <StackPanel Spacing="4">
+                <TextBlock FontWeight="SemiBold">
+                  <Run Text="{Binding DisplayNumber}" /><Run Text=". " /><Run Text="{Binding Title}" />
+                </TextBlock>
+                <TextBlock Text="{Binding OutlineText}" TextWrapping="Wrap" Opacity="0.85" FontSize="13" />
+                <TextBlock Text="{Binding NotesText}" TextWrapping="Wrap" Opacity="0.6" FontSize="12"
+                           IsVisible="{Binding HasNotes}" />
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
     </Grid>
   </DockPanel>
 </Window>

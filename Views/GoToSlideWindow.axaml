@@ -1,0 +1,19 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PptxAvalonia.Views.GoToSlideWindow"
+        Title="移至投影片"
+        Width="360" Height="160"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        SystemDecorations="Full">
+  <DockPanel Margin="16" LastChildFill="True">
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
+      <Button Content="確定" Name="OkButton" IsDefault="True" MinWidth="80" Padding="12,6" />
+      <Button Content="取消" Name="CancelButton" IsCancel="True" MinWidth="80" Padding="12,6" />
+    </StackPanel>
+    <StackPanel Spacing="10">
+      <TextBlock Name="PromptText" Text="輸入投影片編號：" />
+      <TextBox Name="NumberBox" Watermark="例如 1" />
+    </StackPanel>
+  </DockPanel>
+</Window>

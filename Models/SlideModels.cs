@@ -19,6 +19,17 @@ public sealed class PptxSlide
     public ColorRgba Background { get; init; } = ColorRgba.White;
     public string? BackgroundImagePart { get; init; }
     public IReadOnlyList<SlideElement> Elements { get; init; } = [];
+    /// <summary>Speaker notes (備忘稿) plain text.</summary>
+    public string NotesText { get; init; } = string.Empty;
+    /// <summary>All text content concatenated for outline / find.</summary>
+    public string OutlineText { get; init; } = string.Empty;
+}
+
+public enum AppViewMode
+{
+    Normal,
+    Sorter,
+    Outline
 }
 
 public abstract class SlideElement

@@ -174,13 +174,109 @@ public sealed class PptxLoader
         background = ReadBackground(slidePart.Slide?.CommonSlideData?.Background, theme, background);
         CollectShapes(slidePart.Slide?.CommonSlideData?.ShapeTree, slidePart, theme, elements);
 
+        var outline = ExtractOutlineText(elements);
+        var notes = ExtractNotesText(slidePart);
+        var title = ExtractTitle(elements) ?? $"投影片 {index + 1}";
+
         return new PptxSlide
         {
             Index = index,
-            Name = $"投影片 {index + 1}",
+            Name = title,
             Background = background,
-            Elements = elements
+            Elements = elements,
+            OutlineText = outline,
+            NotesText = notes
         };
+    }
+
+    private static string? ExtractTitle(List<SlideElement> elements)
+    {
+        foreach (var el in elements)
+        {
+            if (el is not ShapeElement { Text: { Paragraphs.Count: > 0 } text })
+                continue;
+
+            var line = string.Join("", text.Paragraphs
+                .SelectMany(p => p.Runs)
+                .Select(r => r.Text)).Trim();
+            if (line.Length == 0)
+                continue;
+
+            // Prefer larger title-like text near the top
+            if (el.Y < 200 && text.Paragraphs[0].Runs.Any(r => r.FontSize >= 24))
+                return line.Length > 60 ? line[..60] + "…" : line;
+        }
+
+        foreach (var el in elements)
+        {
+            if (el is not ShapeElement { Text: { Paragraphs.Count: > 0 } text })
+                continue;
+            var line = string.Join("", text.Paragraphs.SelectMany(p => p.Runs).Select(r => r.Text)).Trim();
+            if (line.Length > 0)
+                return line.Length > 60 ? line[..60] + "…" : line;
+        }
+
+        return null;
+    }
+
+    private static string ExtractOutlineText(List<SlideElement> elements)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var el in elements)
+        {
+            if (el is not ShapeElement { Text: { Paragraphs: { Count: > 0 } paras } })
+                continue;
+
+            foreach (var p in paras)
+            {
+                var line = string.Join("", p.Runs.Select(r => r.Text)).Trim();
+                if (line.Length == 0) continue;
+                if (p.IndentLevel > 0)
+                    sb.Append(new string(' ', (int)p.IndentLevel * 2));
+                sb.AppendLine(line);
+            }
+        }
+
+        return sb.ToString().TrimEnd();
+    }
+
+    private static string ExtractNotesText(SlidePart slidePart)
+    {
+        try
+        {
+            var notesPart = slidePart.NotesSlidePart;
+            if (notesPart?.NotesSlide?.CommonSlideData?.ShapeTree is not { } tree)
+                return string.Empty;
+
+            var sb = new System.Text.StringBuilder();
+            foreach (var shape in tree.Descendants<P.Shape>())
+            {
+                // Skip slide image placeholder shapes that only mirror the slide
+                var nv = shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties;
+                var ph = nv?.PlaceholderShape;
+                // Skip the slide-image placeholder that mirrors the slide content
+                if (ph?.Type is not null &&
+                    (ph.Type == P.PlaceholderValues.SlideImage ||
+                     string.Equals(ph.Type.ToString(), "SlideImage", StringComparison.OrdinalIgnoreCase)))
+                    continue;
+
+                var body = shape.TextBody;
+                if (body is null) continue;
+
+                foreach (var p in body.Elements<A.Paragraph>())
+                {
+                    var line = string.Join("", p.Descendants<A.Text>().Select(t => t.Text ?? string.Empty)).Trim();
+                    if (line.Length == 0) continue;
+                    sb.AppendLine(line);
+                }
+            }
+
+            return sb.ToString().TrimEnd();
+        }
+        catch
+        {
+            return string.Empty;
+        }
     }
 
     private static ColorRgba ReadBackground(
