@@ -19,7 +19,8 @@
               Width="{Binding SlideNativeWidth}"
               Height="{Binding SlideNativeHeight}"
               ClipToBounds="True">
-        <ContentControl Content="{Binding CurrentSlideView}"
+        <!-- Must use SlideShowSlideView (not CurrentSlideView) — one Control cannot have two parents -->
+        <ContentControl Content="{Binding SlideShowSlideView}"
                         Width="{Binding SlideNativeWidth}"
                         Height="{Binding SlideNativeHeight}" />
       </Border>

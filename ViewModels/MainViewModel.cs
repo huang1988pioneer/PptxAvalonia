@@ -52,6 +52,12 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private bool _hasDocument;
     [ObservableProperty] private bool _isFitMode = true;
     [ObservableProperty] private Control? _currentSlideView;
+
+    /// <summary>
+    /// Separate visual tree for fullscreen slideshow.
+    /// Avalonia forbids re-parenting the same Control into two windows.
+    /// </summary>
+    [ObservableProperty] private Control? _slideShowSlideView;
     [ObservableProperty] private double _slideNativeWidth = 1280;
     [ObservableProperty] private double _slideNativeHeight = 720;
     [ObservableProperty] private double _slideDisplayWidth = 1280;
@@ -104,15 +110,14 @@ public partial class MainViewModel : ViewModelBase
             _hudTimer.Stop();
         };
 
-        AutoSaveEnabled = _settings.AutoSaveEnabled;
+        // Create timer BEFORE setting AutoSaveEnabled (partial method uses the timer).
         var intervalSec = _settings.AutoSaveIntervalSeconds > 0 ? _settings.AutoSaveIntervalSeconds : 60;
         _autoSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(intervalSec) };
         _autoSaveTimer.Tick += OnAutoSaveTick;
+
+        AutoSaveEnabled = _settings.AutoSaveEnabled;
         UpdateAutoSaveStatusLabel();
         RefreshRecentFiles();
-
-        if (AutoSaveEnabled)
-            _autoSaveTimer.Start();
     }
 
     public void AttachWindow(Window window) => _hostWindow = window;
@@ -409,6 +414,10 @@ public partial class MainViewModel : ViewModelBase
         _settings.AutoSaveIntervalSeconds = 60;
         _settings.SaveSettings();
         UpdateAutoSaveStatusLabel();
+
+        // Guard: property may be set during construction before timers are fully wired.
+        if (_autoSaveTimer is null)
+            return;
 
         if (value)
         {
@@ -802,29 +811,60 @@ public partial class MainViewModel : ViewModelBase
 
     private void OpenSlideShow(bool fromBeginning)
     {
-        if (_hostWindow is null) return;
-        if (fromBeginning) GoToIndex(0);
-
-        EndSlideShowInternal();
-
-        IsSlideShowActive = true;
-        IsSlideShowBlank = false;
-        ShowSlideShowHud = true;
-        PulseHud();
-
-        _slideShowWindow = new SlideShowWindow { DataContext = this };
-        _slideShowWindow.Closed += (_, _) =>
+        try
         {
-            IsSlideShowActive = false;
+            if (_hostWindow is null)
+            {
+                StatusText = "無法放映：主視窗尚未就緒。";
+                return;
+            }
+
+            if (_presentation is null || SlideCount <= 0)
+            {
+                StatusText = "無法放映：沒有投影片。";
+                return;
+            }
+
+            if (fromBeginning)
+                GoToIndex(0);
+
+            EndSlideShowInternal();
+
+            // Build a dedicated visual for the slideshow window (must not share CurrentSlideView).
+            RefreshSlideShowSlideView();
+            if (SlideShowSlideView is null)
+            {
+                StatusText = "無法放映：投影片渲染失敗。";
+                return;
+            }
+
+            IsSlideShowActive = true;
             IsSlideShowBlank = false;
-            _slideShowWindow = null;
-            if (IsAutoPlaying)
-                StopAutoPlayInternal(userStopped: true);
-            StatusText = "已結束投影片放映。";
-        };
-        _slideShowWindow.Show(_hostWindow);
-        _slideShowWindow.Activate();
-        StatusText = "投影片放映中（Esc 結束）。";
+            ShowSlideShowHud = true;
+            PulseHud();
+
+            _slideShowWindow = new SlideShowWindow { DataContext = this };
+            _slideShowWindow.Closed += (_, _) =>
+            {
+                IsSlideShowActive = false;
+                IsSlideShowBlank = false;
+                SlideShowSlideView = null;
+                _slideShowWindow = null;
+                if (IsAutoPlaying)
+                    StopAutoPlayInternal(userStopped: true);
+                StatusText = "已結束投影片放映。";
+            };
+            _slideShowWindow.Show(_hostWindow);
+            _slideShowWindow.Activate();
+            StatusText = "投影片放映中（Esc 結束）。";
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("OpenSlideShow failed", ex);
+            IsSlideShowActive = false;
+            SlideShowSlideView = null;
+            StatusText = $"放映失敗：{ex.Message}";
+        }
     }
 
     private void EndSlideShowInternal()
@@ -837,6 +877,7 @@ public partial class MainViewModel : ViewModelBase
         }
         IsSlideShowActive = false;
         IsSlideShowBlank = false;
+        SlideShowSlideView = null;
     }
 
     private void PulseHud()
@@ -1036,16 +1077,35 @@ public partial class MainViewModel : ViewModelBase
         if (_presentation is null || CurrentIndex < 0 || CurrentIndex >= _presentation.Slides.Count)
         {
             CurrentSlideView = null;
+            if (IsSlideShowActive)
+                SlideShowSlideView = null;
             return;
         }
 
         var slide = _presentation.Slides[CurrentIndex];
         CurrentSlideView = _renderer.BuildSlide(_presentation, slide, scale: 1.0);
+
+        // Keep slideshow visual in sync without reusing the editor tree.
+        if (IsSlideShowActive)
+            RefreshSlideShowSlideView();
+
         var native = _renderer.GetSlidePixelSize(_presentation);
         SlideNativeWidth = native.Width;
         SlideNativeHeight = native.Height;
         SlideDisplayWidth = native.Width * Zoom;
         SlideDisplayHeight = native.Height * Zoom;
+    }
+
+    private void RefreshSlideShowSlideView()
+    {
+        if (_presentation is null || CurrentIndex < 0 || CurrentIndex >= _presentation.Slides.Count)
+        {
+            SlideShowSlideView = null;
+            return;
+        }
+
+        var slide = _presentation.Slides[CurrentIndex];
+        SlideShowSlideView = _renderer.BuildSlide(_presentation, slide, scale: 1.0);
     }
 
     partial void OnHasDocumentChanged(bool value)
