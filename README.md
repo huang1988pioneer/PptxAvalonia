@@ -33,6 +33,30 @@
 - Windows / Linux / macOS（Avalonia）
 - Release 自包含包：Windows 10/11 x64（不必安裝 .NET）
 
+## Windows：智慧型應用程式控制已封鎖？
+
+Release 的 `PptxAvalonia.exe` **尚未做程式碼簽章**（Code Signing），在 Windows 11 開啟 **智慧型應用程式控制（Smart App Control）** 時，可能被直接封鎖（錯誤類似 `0x800711C7` /「應用程式控制原則已封鎖此檔案」）。
+
+### 建議作法（任選）
+
+1. **解除下載封鎖（Mark of the Web）**  
+   解壓後對 `PptxAvalonia.exe`：**右鍵 → 內容 → 勾選「解除鎖定」→ 套用**。
+
+2. **暫時改為評估／關閉智慧型應用程式控制**（需自行評估風險）  
+   **設定 → 隱私權與安全性 → Windows 安全性 → 應用程式及瀏覽器控制項 → 智慧型應用程式控制設定**  
+   - 可改為「評估」或「關閉」（關閉後通常無法再改回「開啟」，僅剩評估／關閉）。
+
+3. **從本機原始碼建置執行**（開發用）  
+   ```bash
+   dotnet run -c Release -- Samples/demo.pptx
+   ```
+   若本機政策仍封鎖未簽章 DLL，需調整企業 WDAC／Smart App Control 原則，或為發行版加上**已信任的程式碼簽章憑證**。
+
+4. **正式發行**  
+   以 EV / 一般 Code Signing 憑證簽署 `PptxAvalonia.exe` 後再發佈，Smart App Control 較容易放行。
+
+> 這是 Windows 安全性政策行為，不是 PPTX 檔案損壞。
+
 ## 建置與執行
 
 ```bash
