@@ -35,27 +35,26 @@
 
 ## Windows：智慧型應用程式控制已封鎖？
 
-Release 的 `PptxAvalonia.exe` **尚未做程式碼簽章**（Code Signing），在 Windows 11 開啟 **智慧型應用程式控制（Smart App Control）** 時，可能被直接封鎖（錯誤類似 `0x800711C7` /「應用程式控制原則已封鎖此檔案」）。
+若 Release **未以受信任憑證簽署**，Windows 11 **智慧型應用程式控制（Smart App Control）** 可能封鎖執行（`0x800711C7`）。
 
-### 建議作法（任選）
+### 使用者端（暫時）
 
-1. **解除下載封鎖（Mark of the Web）**  
-   解壓後對 `PptxAvalonia.exe`：**右鍵 → 內容 → 勾選「解除鎖定」→ 套用**。
+1. 右鍵 `PptxAvalonia.exe` → 內容 → **解除鎖定**  
+2. 設定 → Windows 安全性 → 應用程式及瀏覽器控制項 → 智慧型應用程式控制 → 評估／關閉  
+3. 本機：`dotnet run -c Release -- Samples/demo.pptx`
 
-2. **暫時改為評估／關閉智慧型應用程式控制**（需自行評估風險）  
-   **設定 → 隱私權與安全性 → Windows 安全性 → 應用程式及瀏覽器控制項 → 智慧型應用程式控制設定**  
-   - 可改為「評估」或「關閉」（關閉後通常無法再改回「開啟」，僅剩評估／關閉）。
+### 發行端（根本解法）
 
-3. **從本機原始碼建置執行**（開發用）  
-   ```bash
-   dotnet run -c Release -- Samples/demo.pptx
-   ```
-   若本機政策仍封鎖未簽章 DLL，需調整企業 WDAC／Smart App Control 原則，或為發行版加上**已信任的程式碼簽章憑證**。
+| 項目 | 說明 |
+|------|------|
+| `scripts/sign.ps1` | `signtool` + PFX 簽署 |
+| `scripts/publish-release.ps1` | 打包；有憑證則自動簽署 |
+| `.github/workflows/release.yml` | Tag / 手動觸發建置與 Release |
+| [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md) | 憑證、Secrets、驗證完整說明 |
 
-4. **正式發行**  
-   以 EV / 一般 Code Signing 憑證簽署 `PptxAvalonia.exe` 後再發佈，Smart App Control 較容易放行。
+GitHub Secrets（選填）：`CODE_SIGNING_PFX_BASE64`、`CODE_SIGNING_PFX_PASSWORD`  
 
-> 這是 Windows 安全性政策行為，不是 PPTX 檔案損壞。
+設定後推送 `v*` tag 或於 Actions 執行 **Release**。自簽憑證**無法**通過 SAC，需公開 CA 或 Azure Trusted Signing。
 
 ## 建置與執行
 
@@ -63,6 +62,18 @@ Release 的 `PptxAvalonia.exe` **尚未做程式碼簽章**（Code Signing），
 dotnet restore
 dotnet build -c Release
 dotnet run -c Release -- Samples/demo.pptx
+```
+
+### 打包 Release（本機）
+
+```powershell
+# 未簽署
+.\scripts\publish-release.ps1 -Version v1.0.0
+
+# 有憑證時（會自動簽署 .exe）
+$env:CODE_SIGNING_PFX_PATH = "C:\certs\codesign.pfx"
+$env:CODE_SIGNING_PFX_PASSWORD = "****"
+.\scripts\publish-release.ps1 -Version v1.0.0
 ```
 
 ## 快捷鍵
