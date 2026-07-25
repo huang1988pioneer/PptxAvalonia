@@ -61,6 +61,8 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Copy-Item (Join-Path $artifacts "sc-raw\PptxAvalonia.exe") (Join-Path $artifacts "sc-pack\")
 Copy-Item (Join-Path $artifacts "sc-raw\PptxAvalonia.pdb") (Join-Path $artifacts "sc-pack\")
 Copy-Item (Join-Path $root "Samples\demo.pptx") (Join-Path $artifacts "sc-pack\demo.pptx")
+Copy-Item (Join-Path $root "scripts\解除封鎖.bat") (Join-Path $artifacts "sc-pack\")
+Copy-Item (Join-Path $root "scripts\unblock-after-download.ps1") (Join-Path $artifacts "sc-pack\")
 Invoke-OptionalSign -TargetPath (Join-Path $artifacts "sc-pack\PptxAvalonia.exe")
 
 $scZip = Join-Path $artifacts "PptxAvalonia-$Version-win-x64-self-contained.zip"
@@ -81,6 +83,8 @@ Get-ChildItem (Join-Path $artifacts "fd-raw") -File | Where-Object {
     Copy-Item $_.FullName (Join-Path $artifacts "fd-pack\")
 }
 Copy-Item (Join-Path $root "Samples\demo.pptx") (Join-Path $artifacts "fd-pack\demo.pptx") -Force
+Copy-Item (Join-Path $root "scripts\解除封鎖.bat") (Join-Path $artifacts "fd-pack\")
+Copy-Item (Join-Path $root "scripts\unblock-after-download.ps1") (Join-Path $artifacts "fd-pack\")
 Invoke-OptionalSign -TargetPath (Join-Path $artifacts "fd-pack\PptxAvalonia.exe")
 
 $fdZip = Join-Path $artifacts "PptxAvalonia-$Version-win-x64-framework-dependent.zip"
