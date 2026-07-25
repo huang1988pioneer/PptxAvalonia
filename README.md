@@ -35,13 +35,16 @@
 
 ## Windows：智慧型應用程式控制已封鎖？
 
-若 Release **未以受信任憑證簽署**，Windows 11 **智慧型應用程式控制（Smart App Control）** 可能封鎖執行（`0x800711C7`）。
+與 [XlsxAvalonia](https://github.com/huang1988pioneer/XlsxAvalonia) 相同，Release **皆未做 Code Signing**。  
+兩者打包方式一致（self-contained：`exe` + `pdb` + demo）。  
+**智慧型應用程式控制（SAC）可依雲端信譽對「未簽章」程式做出不同判斷**——因此可能出現「Xlsx 可開、Pptx 被擋」的情況，不一定是專案設定錯誤。
 
-### 使用者端（暫時）
+### 使用者端
 
 1. 右鍵 `PptxAvalonia.exe` → 內容 → **解除鎖定**  
-2. 設定 → Windows 安全性 → 應用程式及瀏覽器控制項 → 智慧型應用程式控制 → 評估／關閉  
-3. 本機：`dotnet run -c Release -- Samples/demo.pptx`
+2. 設定 → Windows 安全性 → 應用程式及瀏覽器控制項 → 智慧型應用程式控制 → **評估／關閉**  
+3. 若同目錄有 `crash.log`，可回報內容（與 XlsxAvalonia 相同機制）  
+4. 本機開發：`dotnet run -c Release -- Samples/demo.pptx`
 
 ### 發行端（根本解法）
 
@@ -52,9 +55,8 @@
 | `.github/workflows/release.yml` | Tag / 手動觸發建置與 Release |
 | [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md) | 憑證、Secrets、驗證完整說明 |
 
-GitHub Secrets（選填）：`CODE_SIGNING_PFX_BASE64`、`CODE_SIGNING_PFX_PASSWORD`  
-
-設定後推送 `v*` tag 或於 Actions 執行 **Release**。自簽憑證**無法**通過 SAC，需公開 CA 或 Azure Trusted Signing。
+GitHub Secrets（選填）：`CODE_SIGNING_PFX_BASE64`、`CODE_SIGNING_PFX_PASSWORD`。  
+自簽憑證**無法**通過 SAC。
 
 ## 建置與執行
 
