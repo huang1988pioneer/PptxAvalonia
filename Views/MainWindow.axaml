@@ -22,16 +22,14 @@
     <Menu DockPanel.Dock="Top">
       <MenuItem Header="檔案(_F)">
         <MenuItem Header="開啟(_O)…" Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O" />
-        <MenuItem Header="最近開啟的檔案" ItemsSource="{Binding RecentFiles}">
-          <MenuItem.ItemTemplate>
-            <DataTemplate x:DataType="x:String">
-              <TextBlock Text="{Binding}" />
-            </DataTemplate>
-          </MenuItem.ItemTemplate>
+        <MenuItem Header="最近開啟的檔案" ItemsSource="{Binding RecentFileItems}">
           <MenuItem.Styles>
-            <Style Selector="MenuItem">
-              <Setter Property="Command" Value="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenRecentCommand}" />
-              <Setter Property="CommandParameter" Value="{Binding}" />
+            <!-- DataContext of each child MenuItem is RecentFileItemViewModel -->
+            <Style Selector="MenuItem" x:DataType="vm:RecentFileItemViewModel">
+              <Setter Property="Header" Value="{Binding DisplayName}" />
+              <Setter Property="Command" Value="{Binding OpenCommand}" />
+              <Setter Property="CommandParameter" Value="{Binding Path}" />
+              <Setter Property="ToolTip.Tip" Value="{Binding ToolTip}" />
             </Style>
           </MenuItem.Styles>
         </MenuItem>
@@ -58,8 +56,8 @@
         <Separator />
         <MenuItem Header="符合視窗" Command="{Binding FitToWindowCommand}" />
         <MenuItem Header="實際大小 100%" Command="{Binding ZoomResetCommand}" InputGesture="Ctrl+0" />
-        <MenuItem Header="放大" Command="{Binding ZoomInCommand}" InputGesture="Ctrl+Plus" />
-        <MenuItem Header="縮小" Command="{Binding ZoomOutCommand}" InputGesture="Ctrl+Minus" />
+        <MenuItem Header="放大" Command="{Binding ZoomInCommand}" InputGesture="Ctrl+OemPlus" />
+        <MenuItem Header="縮小" Command="{Binding ZoomOutCommand}" InputGesture="Ctrl+OemMinus" />
       </MenuItem>
       <MenuItem Header="投影片放映(_S)">
         <MenuItem Header="從頭開始放映" Command="{Binding StartSlideShowFromBeginningCommand}" InputGesture="F5" />

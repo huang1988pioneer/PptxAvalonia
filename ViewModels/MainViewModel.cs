@@ -34,7 +34,7 @@ public partial class MainViewModel : ViewModelBase
     private const double ViewportPadding = 48;
 
     public ObservableCollection<SlideItemViewModel> Slides { get; } = [];
-    public ObservableCollection<string> RecentFiles { get; } = [];
+    public ObservableCollection<RecentFileItemViewModel> RecentFileItems { get; } = [];
     public ObservableCollection<SlideItemViewModel> FindResults { get; } = [];
 
     public IReadOnlyList<int> IntervalOptions { get; } = [1, 2, 3, 5, 8, 10, 15, 30];
@@ -173,9 +173,9 @@ public partial class MainViewModel : ViewModelBase
 
     private void RefreshRecentFiles()
     {
-        RecentFiles.Clear();
+        RecentFileItems.Clear();
         foreach (var p in _recent.Paths)
-            RecentFiles.Add(p);
+            RecentFileItems.Add(new RecentFileItemViewModel(p, OpenRecentCommand));
     }
 
     partial void OnSelectedSlideChanged(SlideItemViewModel? value)
