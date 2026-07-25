@@ -17,27 +17,34 @@ Set-Location $root
 $artifacts = Join-Path $root "artifacts"
 Remove-Item -Recurse -Force $artifacts -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path `
-    "$artifacts\sc-raw", "$artifacts\fd-raw", "$artifacts\sc-pack", "$artifacts\fd-pack" | Out-Null
+    (Join-Path $artifacts "sc-raw"),
+    (Join-Path $artifacts "fd-raw"),
+    (Join-Path $artifacts "sc-pack"),
+    (Join-Path $artifacts "fd-pack") | Out-Null
 
-function Invoke-OptionalSign([string]$TargetPath, [switch]$Recurse) {
+function Invoke-OptionalSign {
+    param(
+        [string]$TargetPath,
+        [switch]$Recurse
+    )
+
     if ($SkipSign) {
-        Write-Host "SkipSign: 不簽署 $TargetPath"
+        Write-Host "SkipSign: not signing $TargetPath"
         return
     }
 
-    $hasCert = ($env:CODE_SIGNING_PFX_PATH -and (Test-Path $env:CODE_SIGNING_PFX_PATH)) -or
-               (-not [string]::IsNullOrWhiteSpace($env:CODE_SIGNING_PFX_BASE64))
-    if (-not $hasCert) {
-        Write-Host "未設定簽章憑證，產出未簽署套件（可能被智慧型應用程式控制封鎖）。"
+    $hasPath = $env:CODE_SIGNING_PFX_PATH -and (Test-Path $env:CODE_SIGNING_PFX_PATH)
+    $hasB64 = -not [string]::IsNullOrWhiteSpace($env:CODE_SIGNING_PFX_BASE64)
+    if (-not ($hasPath -or $hasB64)) {
+        Write-Host "No signing certificate configured; building unsigned packages."
         return
     }
 
-    $args = @{ Path = $TargetPath }
-    if ($Recurse) { $args.Recurse = $true }
-    & "$root\scripts\sign.ps1" @args
-    if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
-        # sign.ps1 exits 0 when skipping; non-zero is real failure
-        if ($LASTEXITCODE -gt 0) { exit $LASTEXITCODE }
+    $signScript = Join-Path $root "scripts\sign.ps1"
+    if ($Recurse) {
+        & $signScript -Path $TargetPath -Recurse
+    } else {
+        & $signScript -Path $TargetPath
     }
 }
 
@@ -48,35 +55,37 @@ dotnet publish PptxAvalonia.csproj -c Release -r win-x64 --self-contained true `
     -p:EnableCompressionInSingleFile=true `
     -p:DebugType=portable `
     -p:CopyOutputSymbolsToPublishDirectory=true `
-    -o "$artifacts\sc-raw"
+    -o (Join-Path $artifacts "sc-raw")
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Copy-Item "$artifacts\sc-raw\PptxAvalonia.exe" "$artifacts\sc-pack\"
-Copy-Item "$artifacts\sc-raw\PptxAvalonia.pdb" "$artifacts\sc-pack\"
-Copy-Item "$root\Samples\demo.pptx" "$artifacts\sc-pack\demo.pptx"
-Invoke-OptionalSign "$artifacts\sc-pack\PptxAvalonia.exe"
+Copy-Item (Join-Path $artifacts "sc-raw\PptxAvalonia.exe") (Join-Path $artifacts "sc-pack\")
+Copy-Item (Join-Path $artifacts "sc-raw\PptxAvalonia.pdb") (Join-Path $artifacts "sc-pack\")
+Copy-Item (Join-Path $root "Samples\demo.pptx") (Join-Path $artifacts "sc-pack\demo.pptx")
+Invoke-OptionalSign -TargetPath (Join-Path $artifacts "sc-pack\PptxAvalonia.exe")
 
-$scZip = "$artifacts\PptxAvalonia-$Version-win-x64-self-contained.zip"
+$scZip = Join-Path $artifacts "PptxAvalonia-$Version-win-x64-self-contained.zip"
 if (Test-Path $scZip) { Remove-Item $scZip -Force }
-Compress-Archive -Path "$artifacts\sc-pack\*" -DestinationPath $scZip -Force
+Compress-Archive -Path (Join-Path $artifacts "sc-pack\*") -DestinationPath $scZip -Force
 
 # --- Framework-dependent ---
 dotnet publish PptxAvalonia.csproj -c Release -r win-x64 --self-contained false `
     -p:PublishSingleFile=true `
     -p:DebugType=portable `
     -p:CopyOutputSymbolsToPublishDirectory=true `
-    -o "$artifacts\fd-raw"
+    -o (Join-Path $artifacts "fd-raw")
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Get-ChildItem "$artifacts\fd-raw" -File | Where-Object {
+Get-ChildItem (Join-Path $artifacts "fd-raw") -File | Where-Object {
     $_.Extension -match '\.(exe|dll|pdb)$'
-} | ForEach-Object { Copy-Item $_.FullName "$artifacts\fd-pack\" }
-Copy-Item "$root\Samples\demo.pptx" "$artifacts\fd-pack\demo.pptx" -Force
-Invoke-OptionalSign "$artifacts\fd-pack\PptxAvalonia.exe"
+} | ForEach-Object {
+    Copy-Item $_.FullName (Join-Path $artifacts "fd-pack\")
+}
+Copy-Item (Join-Path $root "Samples\demo.pptx") (Join-Path $artifacts "fd-pack\demo.pptx") -Force
+Invoke-OptionalSign -TargetPath (Join-Path $artifacts "fd-pack\PptxAvalonia.exe")
 
-$fdZip = "$artifacts\PptxAvalonia-$Version-win-x64-framework-dependent.zip"
+$fdZip = Join-Path $artifacts "PptxAvalonia-$Version-win-x64-framework-dependent.zip"
 if (Test-Path $fdZip) { Remove-Item $fdZip -Force }
-Compress-Archive -Path "$artifacts\fd-pack\*" -DestinationPath $fdZip -Force
+Compress-Archive -Path (Join-Path $artifacts "fd-pack\*") -DestinationPath $fdZip -Force
 
 # Signature report
 $signedNote = "unsigned"
@@ -84,26 +93,32 @@ $exe = Join-Path $artifacts "sc-pack\PptxAvalonia.exe"
 if (Test-Path $exe) {
     try {
         $sig = Get-AuthenticodeSignature $exe
-        if ($sig.Status -eq "Valid") { $signedNote = "signed ($($sig.SignerCertificate.Subject))" }
-        else { $signedNote = "signature-status=$($sig.Status)" }
+        if ($sig.Status -eq "Valid") {
+            $signedNote = "signed ($($sig.SignerCertificate.Subject))"
+        } else {
+            $signedNote = "signature-status=$($sig.Status)"
+        }
     } catch {
         $signedNote = "signature-check-failed"
     }
 }
 
 $builtUtc = [DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
-$report = @(
+$reportLines = @(
     "# PptxAvalonia $Version package report",
     "",
-    "* Self-contained: $scZip",
-    "* Framework-dependent: $fdZip",
-    "* Authenticode: $signedNote",
-    "* Built: $builtUtc UTC"
-) -join [Environment]::NewLine
-Set-Content -Path (Join-Path $artifacts "PACKAGE_REPORT.md") -Value $report -Encoding UTF8
+    "Self-contained: $scZip",
+    "Framework-dependent: $fdZip",
+    "Authenticode: $signedNote",
+    "Built: $builtUtc UTC"
+)
+Set-Content -Path (Join-Path $artifacts "PACKAGE_REPORT.md") -Value $reportLines -Encoding UTF8
 
 Write-Host "Self-contained pack:"
-Get-ChildItem (Join-Path $artifacts "sc-pack") | ForEach-Object { Write-Host "  $($_.Name)" }
+Get-ChildItem (Join-Path $artifacts "sc-pack") | ForEach-Object { Write-Host ("  " + $_.Name) }
 Write-Host "Zips:"
-Get-ChildItem (Join-Path $artifacts "*.zip") | ForEach-Object { Write-Host "  $($_.Name) ($([math]::Round($_.Length/1MB,2)) MB)" }
-Write-Host "Authenticode: $signedNote"
+Get-ChildItem (Join-Path $artifacts "*.zip") | ForEach-Object {
+    $mb = [math]::Round($_.Length / 1MB, 2)
+    Write-Host ("  " + $_.Name + " (" + $mb + " MB)")
+}
+Write-Host ("Authenticode: " + $signedNote)
