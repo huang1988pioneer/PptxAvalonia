@@ -25,6 +25,8 @@ public sealed class AppSettingsService
 
     public bool AutoSaveEnabled { get; set; }
     public int AutoSaveIntervalSeconds { get; set; } = 60;
+    /// <summary>UI chrome skin name (matches <see cref="Models.UiSkin"/>).</summary>
+    public string UiSkinName { get; set; } = nameof(Models.UiSkin.LibreOffice);
 
     public string RecoverDirectory => _recoverDir;
 
@@ -35,7 +37,8 @@ public sealed class AppSettingsService
             var dto = new SettingsDto
             {
                 AutoSaveEnabled = AutoSaveEnabled,
-                AutoSaveIntervalSeconds = AutoSaveIntervalSeconds
+                AutoSaveIntervalSeconds = AutoSaveIntervalSeconds,
+                UiSkinName = UiSkinName
             };
             File.WriteAllText(_settingsPath, JsonSerializer.Serialize(dto, JsonOptions));
         }
@@ -127,6 +130,8 @@ public sealed class AppSettingsService
             AutoSaveIntervalSeconds = dto.AutoSaveIntervalSeconds is > 0 and <= 3600
                 ? dto.AutoSaveIntervalSeconds
                 : 60;
+            if (!string.IsNullOrWhiteSpace(dto.UiSkinName))
+                UiSkinName = dto.UiSkinName;
         }
         catch
         {
@@ -140,6 +145,7 @@ public sealed class AppSettingsService
     {
         public bool AutoSaveEnabled { get; set; }
         public int AutoSaveIntervalSeconds { get; set; } = 60;
+        public string UiSkinName { get; set; } = nameof(Models.UiSkin.LibreOffice);
     }
 }
 

@@ -15,6 +15,12 @@
 - **投影片瀏覽**：網格縮圖（`Ctrl+2`）
 - **大綱**：文字大綱與備忘稿（`Ctrl+3`）
 - 符合視窗 / 縮放 / 顯示或隱藏縮圖與備忘稿
+- **介面風格**（可即時切換，會記住設定）：
+  - LibreOffice Impress（經典功能表 + 工具列）
+  - Google 簡報（扁平頂列）
+  - WPS Presentation（紅色 Ribbon）
+  - FreeOffice Presentations（藍色 Ribbon）
+  - Microsoft PowerPoint（橘色 Ribbon）
 
 ### 投影片放映
 - **全螢幕放映**（`F5` 從頭、`Shift+F5` 從目前）

@@ -39,8 +39,9 @@ public partial class MainViewModel : ViewModelBase
 
     public IReadOnlyList<int> IntervalOptions { get; } = [1, 2, 3, 5, 8, 10, 15, 30];
 
-    [ObservableProperty] private string _title = "PptxAvalonia — PowerPoint 預覽";
-    [ObservableProperty] private string _statusText = "請開啟 .pptx 檔案。";
+    [ObservableProperty] private string _title = "PptxAvalonia";
+    [ObservableProperty] private string _statusText = "請開啟 .pptx 簡報，或於「介面風格」切換五種外觀。";
+    [ObservableProperty] private bool _hasRecentFiles;
     [ObservableProperty] private string _fileName = string.Empty;
     [ObservableProperty] private string _filePath = string.Empty;
     [ObservableProperty] private int _currentIndex = -1;
@@ -98,6 +99,14 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _autoSaveStatus = "自動儲存：關閉";
     [ObservableProperty] private string _lastAutoSaveText = string.Empty;
 
+    // UI skins (Google / LibreOffice / WPS / FreeOffice / PowerPoint)
+    [ObservableProperty] private UiSkin _uiSkin = UiSkin.LibreOffice;
+    [ObservableProperty] private bool _isChromeClassic = true;
+    [ObservableProperty] private bool _isChromeGoogle;
+    [ObservableProperty] private bool _isChromeRibbon;
+    [ObservableProperty] private string _skinDisplayName = UiSkinInfo.DisplayName(UiSkin.LibreOffice);
+    [ObservableProperty] private string _emptyStateSubtitle = $"{UiSkinInfo.DisplayName(UiSkin.LibreOffice)} 風格簡報檢視器";
+
     public MainViewModel()
     {
         _autoPlayTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(AutoPlayIntervalSeconds) };
@@ -118,6 +127,11 @@ public partial class MainViewModel : ViewModelBase
         AutoSaveEnabled = _settings.AutoSaveEnabled;
         UpdateAutoSaveStatusLabel();
         RefreshRecentFiles();
+
+        if (Enum.TryParse<UiSkin>(_settings.UiSkinName, ignoreCase: true, out var savedSkin))
+            ApplySkin(savedSkin, persist: false, announce: false);
+        else
+            ApplySkin(UiSkin.LibreOffice, persist: false, announce: false);
     }
 
     public void AttachWindow(Window window) => _hostWindow = window;
@@ -181,6 +195,7 @@ public partial class MainViewModel : ViewModelBase
         RecentFileItems.Clear();
         foreach (var p in _recent.Paths)
             RecentFileItems.Add(new RecentFileItemViewModel(p, OpenRecentCommand));
+        HasRecentFiles = RecentFileItems.Count > 0;
     }
 
     partial void OnSelectedSlideChanged(SlideItemViewModel? value)
@@ -303,7 +318,7 @@ public partial class MainViewModel : ViewModelBase
         CurrentNotes = string.Empty;
         CurrentOutline = string.Empty;
         DocumentInfo = string.Empty;
-        Title = "PptxAvalonia — PowerPoint 預覽";
+        Title = $"PptxAvalonia — {UiSkinInfo.ShortName(UiSkin)}";
         StatusText = "已關閉簡報。";
         NotifyDocCommands();
     }
@@ -357,7 +372,7 @@ public partial class MainViewModel : ViewModelBase
                 _presentation = presentation;
                 FileName = presentation.FileName;
                 FilePath = presentation.FilePath;
-                Title = $"{presentation.FileName} — PptxAvalonia";
+                Title = $"{presentation.FileName} — {UiSkinInfo.ShortName(UiSkin)}";
                 SlideCount = presentation.Slides.Count;
 
                 var native = _renderer.GetSlidePixelSize(presentation);
@@ -1126,6 +1141,49 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     private void ShowAbout()
     {
-        StatusText = "PptxAvalonia v1.0.0 — Avalonia + Open XML PowerPoint 預覽器";
+        StatusText =
+            $"PptxAvalonia v1.0.0 — 目前介面：{UiSkinInfo.DisplayName(UiSkin)} · 五種風格可切換 · Avalonia + Open XML";
+    }
+
+    // ——— UI skins ———
+
+    [RelayCommand]
+    private void SetSkinLibreOffice() => ApplySkin(UiSkin.LibreOffice);
+
+    [RelayCommand]
+    private void SetSkinGoogleSlides() => ApplySkin(UiSkin.GoogleSlides);
+
+    [RelayCommand]
+    private void SetSkinWps() => ApplySkin(UiSkin.Wps);
+
+    [RelayCommand]
+    private void SetSkinFreeOffice() => ApplySkin(UiSkin.FreeOffice);
+
+    [RelayCommand]
+    private void SetSkinPowerPoint() => ApplySkin(UiSkin.PowerPoint);
+
+    private void ApplySkin(UiSkin skin, bool persist = true, bool announce = true)
+    {
+        UiSkin = skin;
+        var kind = UiSkinInfo.ChromeKind(skin);
+        IsChromeClassic = kind == UiChromeKind.Classic;
+        IsChromeGoogle = kind == UiChromeKind.Google;
+        IsChromeRibbon = kind == UiChromeKind.Ribbon;
+        SkinDisplayName = UiSkinInfo.DisplayName(skin);
+        EmptyStateSubtitle = $"{SkinDisplayName} 風格簡報檢視器";
+
+        UiThemeService.Apply(skin);
+
+        if (!HasDocument)
+            Title = $"PptxAvalonia — {UiSkinInfo.ShortName(skin)}";
+
+        if (persist)
+        {
+            _settings.UiSkinName = skin.ToString();
+            _settings.SaveSettings();
+        }
+
+        if (announce)
+            StatusText = $"已切換介面風格：{SkinDisplayName}";
     }
 }
