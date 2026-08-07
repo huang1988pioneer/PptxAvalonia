@@ -28,15 +28,15 @@ public partial class App : Application
             // Only open files from CLI args automatically.
             // Session restore is deferred and failure-safe so it cannot block startup.
             var args = desktop.Args ?? [];
-            var pptx = args.FirstOrDefault(a =>
-                a.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase) && File.Exists(a));
+            var presentationArg = args.FirstOrDefault(a =>
+                File.Exists(a) && Services.PresentationFormatConverter.IsSupported(a));
 
             Dispatcher.UIThread.Post(async () =>
             {
                 try
                 {
-                    if (pptx is not null)
-                        await vm.LoadPathAsync(pptx);
+                    if (presentationArg is not null)
+                        await vm.LoadPathAsync(presentationArg);
                     else
                         await vm.TryRestoreSessionAsync();
                 }

@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace PptxAvalonia.Services;
 
-/// <summary>Persists recent .pptx paths under the user app data folder.</summary>
+/// <summary>Persists recent presentation paths under the user app data folder.</summary>
 public sealed class RecentFilesService
 {
     private const int MaxItems = 12;

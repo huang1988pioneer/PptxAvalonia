@@ -465,7 +465,7 @@
               </StackPanel>
             </StackPanel>
 
-            <TextBlock Text="開啟 .pptx 以預覽、瀏覽大綱與全螢幕放映。可在「介面風格」切換五種外觀。"
+            <TextBlock Text="開啟 .pptx / .ppt / .odp 以預覽、瀏覽大綱與全螢幕放映。可在「介面風格」切換五種外觀。"
                        TextWrapping="Wrap" FontSize="12" Margin="0,0,0,18"
                        Foreground="{DynamicResource UiMutedBrush}" />
 
@@ -502,7 +502,7 @@
               </StackPanel>
             </Border>
 
-            <TextBlock Text="拖放 .pptx · F5 放映 · Ctrl+F 尋找 · Ctrl+1/2/3 切換檢視"
+            <TextBlock Text="拖放 .pptx / .ppt / .odp · F5 放映 · Ctrl+F 尋找 · Ctrl+1/2/3 切換檢視"
                        Classes="ui-muted" Margin="0,16,0,0" Opacity="0.9" />
           </StackPanel>
         </Border>

@@ -126,13 +126,13 @@ public partial class MainWindow : Window
 
     private void OnDragOver(object? sender, DragEventArgs e)
     {
-        e.DragEffects = HasPptx(e) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.DragEffects = HasPresentationFile(e) ? DragDropEffects.Copy : DragDropEffects.None;
     }
 
     private async void OnDrop(object? sender, DragEventArgs e)
     {
         if (_vm is null) return;
-        var path = await TryGetPptxPathAsync(e);
+        var path = await TryGetPresentationPathAsync(e);
         if (path is not null)
             await _vm.LoadPathAsync(path);
     }
@@ -238,20 +238,29 @@ public partial class MainWindow : Window
         }
     }
 
-    private static bool HasPptx(DragEventArgs e)
+    private static bool IsPresentationName(string? name)
+    {
+        if (string.IsNullOrEmpty(name)) return false;
+        return name.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase)
+               || name.EndsWith(".ppt", StringComparison.OrdinalIgnoreCase)
+               || name.EndsWith(".pps", StringComparison.OrdinalIgnoreCase)
+               || name.EndsWith(".odp", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HasPresentationFile(DragEventArgs e)
     {
         if (!e.Data.Contains(DataFormats.Files)) return false;
         var items = e.Data.GetFiles();
         if (items is null) return false;
         foreach (var item in items)
         {
-            if ((item.Name ?? "").EndsWith(".pptx", StringComparison.OrdinalIgnoreCase))
+            if (IsPresentationName(item.Name))
                 return true;
         }
         return false;
     }
 
-    private static async Task<string?> TryGetPptxPathAsync(DragEventArgs e)
+    private static async Task<string?> TryGetPresentationPathAsync(DragEventArgs e)
     {
         if (!e.Data.Contains(DataFormats.Files)) return null;
         var items = e.Data.GetFiles();
@@ -259,11 +268,13 @@ public partial class MainWindow : Window
         foreach (var item in items)
         {
             if (item is not IStorageFile file) continue;
-            if (!(file.Name ?? "").EndsWith(".pptx", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!IsPresentationName(file.Name)) continue;
             var path = file.TryGetLocalPath();
             if (!string.IsNullOrEmpty(path)) return path;
             await using var stream = await file.OpenReadAsync();
-            var temp = Path.Combine(Path.GetTempPath(), $"pptx-preview-{Guid.NewGuid():N}.pptx");
+            var ext = Path.GetExtension(file.Name ?? ".pptx");
+            if (string.IsNullOrEmpty(ext)) ext = ".pptx";
+            var temp = Path.Combine(Path.GetTempPath(), $"pptx-preview-{Guid.NewGuid():N}{ext}");
             await using var fs = File.Create(temp);
             await stream.CopyToAsync(fs);
             return temp;

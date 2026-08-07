@@ -1,11 +1,14 @@
 # PptxAvalonia
 
-以 **Avalonia UI** 打造的桌面程式，提供接近 Microsoft PowerPoint 的常用**檢視／放映**功能，可開啟並預覽 `.pptx`。
+以 **Avalonia UI** 打造的桌面程式，提供接近 Microsoft PowerPoint 的常用**檢視／放映**功能，可開啟並預覽簡報。
 
 ## 功能（對齊 PowerPoint 常用操作）
 
 ### 檔案
-- 開啟 `.pptx`（選單 / `Ctrl+O` / 拖放）
+- 開啟簡報（選單 / `Ctrl+O` / 拖放 / 命令列參數）
+  - **`.pptx`**：直接以 Open XML 載入
+  - **`.ppt` / `.pps` / `.odp`**：透過本機 **LibreOffice**（或 OpenOffice）轉成 `.pptx` 後預覽
+- 未安裝 LibreOffice 時，仍可正常開啟 `.pptx`；開啟 `.ppt` / `.odp` 會提示需安裝
 - 最近開啟的檔案
 - 匯出目前投影片 / 全部投影片為 **PNG**
 - 關閉簡報
@@ -38,6 +41,7 @@
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)（開發）
 - Windows / Linux / macOS（Avalonia）
 - Release 自包含包：Windows 10/11 x64（不必安裝 .NET）
+- （選用）[LibreOffice](https://www.libreoffice.org/)：開啟 `.ppt` / `.pps` / `.odp` 時需要
 
 ## Windows：智慧型應用程式控制已封鎖？
 
@@ -103,6 +107,7 @@ $env:CODE_SIGNING_PFX_PASSWORD = "****"
 | 路徑 | 說明 |
 |------|------|
 | `Services/PptxLoader.cs` | Open XML 解析（形狀、文字、圖片、備忘稿、大綱） |
+| `Services/PresentationFormatConverter.cs` | `.ppt` / `.pps` / `.odp` → `.pptx`（LibreOffice headless） |
 | `Services/SlideRenderer.cs` | Avalonia 視覺樹預覽 |
 | `Services/SlideExportService.cs` | 匯出 PNG |
 | `Services/RecentFilesService.cs` | 最近檔案 |
@@ -112,6 +117,8 @@ $env:CODE_SIGNING_PFX_PASSWORD = "****"
 ## 限制
 
 輕量預覽，非完整 PowerPoint 編輯器。不支援（或僅近似）：圖表、表格、智慧圖形、動畫過場、漸層、影片、完整字型替代。
+
+`.ppt` / `.odp` 為**轉換後預覽**（非原生解析），版面可能與原軟體略有差異；未安裝 LibreOffice 時無法開啟這兩種格式。
 
 ## 授權
 

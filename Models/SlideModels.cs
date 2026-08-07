@@ -5,8 +5,8 @@ namespace PptxAvalonia.Models;
 /// <summary>In-memory presentation model loaded from a .pptx package.</summary>
 public sealed class PptxPresentation
 {
-    public required string FilePath { get; init; }
-    public required string FileName { get; init; }
+    public required string FilePath { get; set; }
+    public required string FileName { get; set; }
     public long SlideWidthEmu { get; init; } = 12_192_000; // 13.333" default 16:9
     public long SlideHeightEmu { get; init; } = 6_858_000; // 7.5"
     public IReadOnlyList<PptxSlide> Slides { get; init; } = [];

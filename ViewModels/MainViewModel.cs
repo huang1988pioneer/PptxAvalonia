@@ -20,6 +20,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly SlideExportService _export = new();
     private readonly RecentFilesService _recent = new();
     private readonly AppSettingsService _settings = new();
+    private readonly PresentationFormatConverter _formatConverter = new();
     private PptxPresentation? _presentation;
     private Window? _hostWindow;
     private SlideShowWindow? _slideShowWindow;
@@ -40,7 +41,7 @@ public partial class MainViewModel : ViewModelBase
     public IReadOnlyList<int> IntervalOptions { get; } = [1, 2, 3, 5, 8, 10, 15, 30];
 
     [ObservableProperty] private string _title = "PptxAvalonia";
-    [ObservableProperty] private string _statusText = "請開啟 .pptx 簡報，或於「介面風格」切換五種外觀。";
+    [ObservableProperty] private string _statusText = "請開啟 .pptx / .ppt / .odp 簡報，或於「介面風格」切換五種外觀。";
     [ObservableProperty] private bool _hasRecentFiles;
     [ObservableProperty] private string _fileName = string.Empty;
     [ObservableProperty] private string _filePath = string.Empty;
@@ -246,14 +247,33 @@ public partial class MainViewModel : ViewModelBase
         if (_hostWindow is null) return;
         var files = await _hostWindow.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "開啟 PowerPoint 簡報",
+            Title = "開啟簡報",
             AllowMultiple = false,
             FileTypeFilter =
             [
-                new FilePickerFileType("PowerPoint 簡報")
+                new FilePickerFileType("簡報檔案")
                 {
-                    Patterns = ["*.pptx"],
-                    MimeTypes = ["application/vnd.openxmlformats-officedocument.presentationml.presentation"]
+                    Patterns = ["*.pptx", "*.ppt", "*.pps", "*.odp"],
+                    MimeTypes =
+                    [
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        "application/vnd.ms-powerpoint",
+                        "application/vnd.oasis.opendocument.presentation"
+                    ]
+                },
+                new FilePickerFileType("PowerPoint (.pptx / .ppt)")
+                {
+                    Patterns = ["*.pptx", "*.ppt", "*.pps"],
+                    MimeTypes =
+                    [
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        "application/vnd.ms-powerpoint"
+                    ]
+                },
+                new FilePickerFileType("OpenDocument (.odp)")
+                {
+                    Patterns = ["*.odp"],
+                    MimeTypes = ["application/vnd.oasis.opendocument.presentation"]
                 },
                 FilePickerFileTypes.All
             ]
@@ -267,7 +287,9 @@ public partial class MainViewModel : ViewModelBase
             try
             {
                 await using var stream = await file.OpenReadAsync();
-                path = Path.Combine(Path.GetTempPath(), $"pptx-open-{Guid.NewGuid():N}.pptx");
+                var ext = Path.GetExtension(file.Name ?? ".pptx");
+                if (string.IsNullOrEmpty(ext)) ext = ".pptx";
+                path = Path.Combine(Path.GetTempPath(), $"pptx-open-{Guid.NewGuid():N}{ext}");
                 await using var fs = File.Create(path);
                 await stream.CopyToAsync(fs);
             }
@@ -351,9 +373,9 @@ public partial class MainViewModel : ViewModelBase
                 return;
             }
 
-            if (!path.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase))
+            if (!PresentationFormatConverter.IsSupported(path))
             {
-                StatusText = "僅支援 .pptx 檔案。";
+                StatusText = $"不支援此格式。請使用 {PresentationFormatConverter.SupportedExtensionsFilterDescription}。";
                 return;
             }
 
@@ -365,10 +387,32 @@ public partial class MainViewModel : ViewModelBase
             HasDocument = false;
             CurrentIndex = -1;
 
-            var presentation = await Task.Run(() => _loader.Load(path));
+            var originalPath = path;
+            var loadPath = path;
+            var converted = false;
+
+            // Previous conversion temps are no longer needed once we open another file.
+            _formatConverter.CleanupTemps();
+
+            if (PresentationFormatConverter.NeedsConversion(path))
+            {
+                var ext = Path.GetExtension(path).ToLowerInvariant();
+                StatusText = $"正在轉換 {ext} → .pptx（需 LibreOffice）…";
+                loadPath = await Task.Run(() =>
+                    _formatConverter.EnsurePptx(path, msg =>
+                        Dispatcher.UIThread.Post(() => StatusText = msg)));
+                converted = !string.Equals(loadPath, path, StringComparison.OrdinalIgnoreCase);
+            }
+
+            StatusText = "正在載入…";
+            var presentation = await Task.Run(() => _loader.Load(loadPath));
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
+                // Keep original path/name so recent list & title match what the user opened.
+                presentation.FilePath = originalPath;
+                presentation.FileName = Path.GetFileName(originalPath);
+
                 _presentation = presentation;
                 FileName = presentation.FileName;
                 FilePath = presentation.FilePath;
@@ -378,7 +422,8 @@ public partial class MainViewModel : ViewModelBase
                 var native = _renderer.GetSlidePixelSize(presentation);
                 SlideNativeWidth = native.Width;
                 SlideNativeHeight = native.Height;
-                DocumentInfo = $"{SlideCount} 張投影片 · {native.Width:0}×{native.Height:0} px · 16:9 預覽";
+                var formatNote = converted ? " · 已轉 .pptx 預覽" : "";
+                DocumentInfo = $"{SlideCount} 張投影片 · {native.Width:0}×{native.Height:0} px{formatNote}";
 
                 for (var i = 0; i < presentation.Slides.Count; i++)
                 {
@@ -387,7 +432,7 @@ public partial class MainViewModel : ViewModelBase
                     Slides.Add(new SlideItemViewModel(slide, thumb, i + 1));
                 }
 
-                _recent.Add(path);
+                _recent.Add(originalPath);
                 RefreshRecentFiles();
 
                 HasDocument = SlideCount > 0;
@@ -397,7 +442,9 @@ public partial class MainViewModel : ViewModelBase
                     ViewMode = AppViewMode.Normal;
                     GoToIndex(0);
                     ApplyFitZoom(refresh: true);
-                    StatusText = $"已載入 {SlideCount} 張投影片。F5 放映、Ctrl+F 尋找。";
+                    StatusText = converted
+                        ? $"已載入 {SlideCount} 張投影片（由 {Path.GetExtension(originalPath).ToLowerInvariant()} 轉換）。F5 放映、Ctrl+F 尋找。"
+                        : $"已載入 {SlideCount} 張投影片。F5 放映、Ctrl+F 尋找。";
                     if (AutoSaveEnabled)
                         PerformAutoSave(silent: true);
                 }
