@@ -1,0 +1,53 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PptxAvalonia.ViewModels"
+        x:Class="PptxAvalonia.Views.SlideShowWindow"
+        x:DataType="vm:MainViewModel"
+        Title="投影片放映"
+        WindowState="FullScreen"
+        SystemDecorations="None"
+        Background="Black"
+        Topmost="True"
+        ShowInTaskbar="False">
+
+  <Grid>
+    <!-- Slide content -->
+    <Viewbox Stretch="Uniform"
+             Margin="0"
+             IsVisible="{Binding !IsSlideShowBlank}">
+      <Border Background="White"
+              Width="{Binding SlideNativeWidth}"
+              Height="{Binding SlideNativeHeight}"
+              ClipToBounds="True">
+        <!-- Must use SlideShowSlideView (not CurrentSlideView) — one Control cannot have two parents -->
+        <ContentControl Content="{Binding SlideShowSlideView}"
+                        Width="{Binding SlideNativeWidth}"
+                        Height="{Binding SlideNativeHeight}" />
+      </Border>
+    </Viewbox>
+
+    <!-- B / W blank screens -->
+    <Border IsVisible="{Binding IsSlideShowBlank}"
+            Background="{Binding SlideShowBlankBrush}" />
+
+    <!-- HUD: page + autoplay (subtle) -->
+    <Border VerticalAlignment="Bottom"
+            HorizontalAlignment="Center"
+            Margin="0,0,0,16"
+            Padding="12,6"
+            CornerRadius="6"
+            Background="#66000000"
+            IsVisible="{Binding ShowSlideShowHud}">
+      <StackPanel Orientation="Horizontal" Spacing="16">
+        <TextBlock Text="{Binding PageLabel}" Foreground="White" FontSize="14" />
+        <TextBlock Text="{Binding AutoPlayStatus}"
+                   Foreground="#A5D6A7"
+                   FontSize="13"
+                   IsVisible="{Binding IsAutoPlaying}" />
+        <TextBlock Text="Esc 結束 · B 黑屏 · W 白屏 · ← → 切換 · F5 自動"
+                   Foreground="#BBBBBB"
+                   FontSize="12" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

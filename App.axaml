@@ -1,0 +1,392 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="PptxAvalonia.App"
+             xmlns:local="using:PptxAvalonia"
+             RequestedThemeVariant="Light">
+
+  <Application.DataTemplates>
+    <local:ViewLocator />
+  </Application.DataTemplates>
+
+  <Application.Resources>
+    <!-- Semantic palette (colors mutated at runtime by UiThemeService) -->
+    <SolidColorBrush x:Key="UiAccentBrush" Color="#18A303" />
+    <SolidColorBrush x:Key="UiAccentDarkBrush" Color="#0E7A00" />
+    <SolidColorBrush x:Key="UiAccentSoftBrush" Color="#E8F5E4" />
+    <SolidColorBrush x:Key="UiSelectBrush" Color="#308CC6" />
+    <SolidColorBrush x:Key="UiSelectBgBrush" Color="#CDE8F6" />
+    <SolidColorBrush x:Key="UiInkBrush" Color="#1A1A1A" />
+    <SolidColorBrush x:Key="UiMutedBrush" Color="#4D4D4D" />
+    <SolidColorBrush x:Key="UiBorderBrush" Color="#A8A8A8" />
+    <SolidColorBrush x:Key="UiBorderLightBrush" Color="#C8C8C8" />
+    <SolidColorBrush x:Key="UiSurfaceBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="UiChromeBrush" Color="#EDEDED" />
+    <SolidColorBrush x:Key="UiToolbarBrush" Color="#F5F5F5" />
+    <SolidColorBrush x:Key="UiCanvasBrush" Color="#808080" />
+    <SolidColorBrush x:Key="UiSidebarBrush" Color="#F0F0F0" />
+    <SolidColorBrush x:Key="UiSidebarHeaderBrush" Color="#E0E0E0" />
+    <SolidColorBrush x:Key="UiStatusBrush" Color="#E8E8E8" />
+    <SolidColorBrush x:Key="UiFindBrush" Color="#18A303" />
+    <SolidColorBrush x:Key="UiHoverBrush" Color="#D8D8D8" />
+    <SolidColorBrush x:Key="UiPressedBrush" Color="#C0C0C0" />
+    <SolidColorBrush x:Key="UiRibbonTabBarBrush" Color="#18A303" />
+    <SolidColorBrush x:Key="UiRibbonBodyBrush" Color="#F5F5F5" />
+    <SolidColorBrush x:Key="UiQatBrush" Color="#EDEDED" />
+    <SolidColorBrush x:Key="UiPrimaryFgBrush" Color="#0E7A00" />
+    <SolidColorBrush x:Key="UiOnAccentBrush" Color="#FFFFFF" />
+
+    <!-- Backward-compatible aliases -->
+    <SolidColorBrush x:Key="LoGreenBrush" Color="#18A303" />
+    <SolidColorBrush x:Key="LoGreenDarkBrush" Color="#0E7A00" />
+    <SolidColorBrush x:Key="LoGreenSoftBrush" Color="#E8F5E4" />
+    <SolidColorBrush x:Key="LoSelectBrush" Color="#308CC6" />
+    <SolidColorBrush x:Key="LoSelectBgBrush" Color="#CDE8F6" />
+    <SolidColorBrush x:Key="LoInkBrush" Color="#1A1A1A" />
+    <SolidColorBrush x:Key="LoMutedBrush" Color="#4D4D4D" />
+    <SolidColorBrush x:Key="LoBorderBrush" Color="#A8A8A8" />
+    <SolidColorBrush x:Key="LoBorderLightBrush" Color="#C8C8C8" />
+    <SolidColorBrush x:Key="LoSurfaceBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="LoChromeBrush" Color="#EDEDED" />
+    <SolidColorBrush x:Key="LoToolbarBrush" Color="#F5F5F5" />
+    <SolidColorBrush x:Key="LoCanvasBrush" Color="#808080" />
+    <SolidColorBrush x:Key="LoSidebarBrush" Color="#F0F0F0" />
+    <SolidColorBrush x:Key="LoSidebarHeaderBrush" Color="#E0E0E0" />
+    <SolidColorBrush x:Key="LoStatusBrush" Color="#E8E8E8" />
+    <SolidColorBrush x:Key="LoFindBrush" Color="#18A303" />
+    <SolidColorBrush x:Key="LoHoverBrush" Color="#D8D8D8" />
+    <SolidColorBrush x:Key="LoPressedBrush" Color="#C0C0C0" />
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme />
+
+    <Style Selector="Window">
+      <Setter Property="Background" Value="{DynamicResource UiChromeBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource UiInkBrush}" />
+      <Setter Property="FontFamily" Value="Segoe UI, Liberation Sans, Microsoft JhengHei UI, sans-serif" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style Selector="Menu">
+      <Setter Property="Background" Value="{DynamicResource UiChromeBrush}" />
+      <Setter Property="Padding" Value="2,1" />
+    </Style>
+    <Style Selector="MenuItem">
+      <Setter Property="Foreground" Value="{DynamicResource UiInkBrush}" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Padding" Value="8,4" />
+    </Style>
+
+    <!-- Tool buttons -->
+    <Style Selector="Button.ui-tool">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource UiInkBrush}" />
+      <Setter Property="Padding" Value="8,4" />
+      <Setter Property="CornerRadius" Value="2" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="MinHeight" Value="28" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.ui-tool:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource UiHoverBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource UiBorderLightBrush}" />
+    </Style>
+    <Style Selector="Button.ui-tool:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource UiPressedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}" />
+    </Style>
+
+    <Style Selector="Button.ui-icon">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource UiInkBrush}" />
+      <Setter Property="Width" Value="30" />
+      <Setter Property="Height" Value="28" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="2" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.ui-icon:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource UiHoverBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource UiBorderLightBrush}" />
+    </Style>
+    <Style Selector="Button.ui-icon:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource UiPressedBrush}" />
+    </Style>
+
+    <Style Selector="Button.ui-primary">
+      <Setter Property="Background" Value="{DynamicResource UiAccentBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource UiAccentDarkBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource UiOnAccentBrush}" />
+      <Setter Property="Padding" Value="12,5" />
+      <Setter Property="CornerRadius" Value="2" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.ui-primary:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource UiAccentDarkBrush}" />
+    </Style>
+    <Style Selector="Button.ui-primary:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource UiAccentDarkBrush}" />
+      <Setter Property="Opacity" Value="0.9" />
+    </Style>
+
+    <Style Selector="Button.ui-default">
+      <Setter Property="Background" Value="{DynamicResource UiToolbarBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource UiInkBrush}" />
+      <Setter Property="Padding" Value="12,5" />
+      <Setter Property="CornerRadius" Value="2" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.ui-default:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource UiHoverBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}" />
+    </Style>
+
+    <Style Selector="Button.ui-tog">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource UiInkBrush}" />
+      <Setter Property="Padding" Value="8,3" />
+      <Setter Property="CornerRadius" Value="2" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.ui-tog:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource UiHoverBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource UiBorderLightBrush}" />
+    </Style>
+    <Style Selector="Button.ui-tog.active">
+      <Setter Property="Background" Value="{DynamicResource UiSelectBgBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource UiSelectBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource UiPrimaryFgBrush}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.ui-tog.active:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource UiSelectBgBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource UiSelectBrush}" />
+    </Style>
+
+    <!-- Google-style pill buttons -->
+    <Style Selector="Button.ui-gs">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="{DynamicResource UiMutedBrush}" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="CornerRadius" Value="20" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="Medium" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="MinHeight" Value="36" />
+    </Style>
+    <Style Selector="Button.ui-gs:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource UiHoverBrush}" />
+    </Style>
+    <Style Selector="Button.ui-gs-primary">
+      <Setter Property="Background" Value="{DynamicResource UiAccentBrush}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="Padding" Value="16,8" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="MinHeight" Value="36" />
+    </Style>
+    <Style Selector="Button.ui-gs-primary:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource UiAccentDarkBrush}" />
+    </Style>
+
+    <!-- Ribbon -->
+    <Style Selector="Button.ui-qat">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource UiInkBrush}" />
+      <Setter Property="Padding" Value="7,3" />
+      <Setter Property="MinHeight" Value="24" />
+      <Setter Property="MinWidth" Value="26" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="CornerRadius" Value="2" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.ui-qat:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource UiHoverBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource UiBorderLightBrush}" />
+    </Style>
+
+    <Style Selector="Button.ui-tab">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="#F0F8FF" />
+      <Setter Property="Padding" Value="14,6" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="MinHeight" Value="28" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.ui-tab:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#33FFFFFF" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.ui-tab.active">
+      <Setter Property="Background" Value="{DynamicResource UiRibbonBodyBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource UiPrimaryFgBrush}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="Button.ui-tab-file">
+      <Setter Property="Background" Value="{DynamicResource UiAccentDarkBrush}" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="Padding" Value="16,6" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="MinHeight" Value="28" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.ui-tab-file:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource UiAccentBrush}" />
+    </Style>
+
+    <Style Selector="Button.ui-cmd">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource UiInkBrush}" />
+      <Setter Property="Padding" Value="8,4" />
+      <Setter Property="MinHeight" Value="28" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.ui-cmd:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource UiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}" />
+    </Style>
+
+    <Style Selector="Button.ui-cmd-lg">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource UiInkBrush}" />
+      <Setter Property="Padding" Value="10,6" />
+      <Setter Property="MinHeight" Value="52" />
+      <Setter Property="MinWidth" Value="56" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.ui-cmd-lg:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource UiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.ui-group-label">
+      <Setter Property="FontSize" Value="10" />
+      <Setter Property="Foreground" Value="{DynamicResource UiMutedBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,2,0,0" />
+    </Style>
+
+    <Style Selector="Border.ui-group-sep">
+      <Setter Property="Width" Value="1" />
+      <Setter Property="Margin" Value="8,6" />
+      <Setter Property="Background" Value="{DynamicResource UiBorderBrush}" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+    </Style>
+
+    <!-- Slides filmstrip -->
+    <Style Selector="ListBox.ui-slides">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="6,4,6,10" />
+    </Style>
+    <Style Selector="ListBox.ui-slides ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,0,0,8" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="ListBox.ui-slides ListBoxItem:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.ui-slides ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.ui-slides ListBoxItem:selected:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.ui-slides ListBoxItem:selected Border.ui-thumb">
+      <Setter Property="BorderBrush" Value="{DynamicResource UiSelectBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="Background" Value="{DynamicResource UiSelectBgBrush}" />
+    </Style>
+    <Style Selector="ListBox.ui-slides ListBoxItem:pointerover Border.ui-thumb">
+      <Setter Property="BorderBrush" Value="#707070" />
+    </Style>
+    <Style Selector="ListBox.ui-slides ListBoxItem:selected:pointerover Border.ui-thumb">
+      <Setter Property="BorderBrush" Value="{DynamicResource UiSelectBrush}" />
+    </Style>
+
+    <Style Selector="TextBox.ui-input">
+      <Setter Property="Background" Value="{DynamicResource UiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="2" />
+      <Setter Property="Padding" Value="6,4" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="TextBox.ui-input:focus">
+      <Setter Property="BorderBrush" Value="{DynamicResource UiSelectBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.ui-pane-title">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource UiInkBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.ui-muted">
+      <Setter Property="Foreground" Value="{DynamicResource UiMutedBrush}" />
+      <Setter Property="FontSize" Value="11" />
+    </Style>
+
+    <Style Selector="Separator.ui-v">
+      <Setter Property="Width" Value="1" />
+      <Setter Property="Margin" Value="4,4" />
+      <Setter Property="Background" Value="{DynamicResource UiBorderLightBrush}" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+    </Style>
+
+    <Style Selector="CheckBox">
+      <Setter Property="Foreground" Value="{DynamicResource UiInkBrush}" />
+      <Setter Property="FontSize" Value="11" />
+    </Style>
+
+    <Style Selector="ComboBox">
+      <Setter Property="Background" Value="{DynamicResource UiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}" />
+      <Setter Property="CornerRadius" Value="2" />
+      <Setter Property="MinHeight" Value="26" />
+      <Setter Property="FontSize" Value="11" />
+    </Style>
+
+  </Application.Styles>
+</Application>

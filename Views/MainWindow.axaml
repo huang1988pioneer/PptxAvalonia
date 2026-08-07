@@ -1,0 +1,681 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PptxAvalonia.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1360" d:DesignHeight="900"
+        x:Class="PptxAvalonia.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="{Binding Title}"
+        Width="1360" Height="900"
+        MinWidth="960" MinHeight="640"
+        Background="{DynamicResource UiChromeBrush}"
+        DragDrop.AllowDrop="True">
+
+  <Design.DataContext>
+    <vm:MainViewModel />
+  </Design.DataContext>
+
+  <DockPanel>
+    <!-- ═══════════ Classic chrome (LibreOffice Impress) ═══════════ -->
+    <Menu DockPanel.Dock="Top" IsVisible="{Binding IsChromeClassic}"
+          Background="{DynamicResource UiChromeBrush}">
+      <MenuItem Header="檔案(_F)">
+        <MenuItem Header="開啟(_O)…" Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O" />
+        <MenuItem Header="最近開啟的檔案" ItemsSource="{Binding RecentFileItems}">
+          <MenuItem.Styles>
+            <Style Selector="MenuItem" x:DataType="vm:RecentFileItemViewModel">
+              <Setter Property="Header" Value="{Binding DisplayName}" />
+              <Setter Property="Command" Value="{Binding OpenCommand}" />
+              <Setter Property="CommandParameter" Value="{Binding Path}" />
+              <Setter Property="ToolTip.Tip" Value="{Binding ToolTip}" />
+            </Style>
+          </MenuItem.Styles>
+        </MenuItem>
+        <MenuItem Header="清除最近檔案" Command="{Binding ClearRecentCommand}" />
+        <Separator />
+        <MenuItem Header="自動儲存（每 60 秒）" Command="{Binding ToggleAutoSaveCommand}" />
+        <MenuItem Header="立即儲存工作階段" Command="{Binding SaveNowCommand}" InputGesture="Ctrl+S" />
+        <MenuItem Header="還原上次工作階段" Command="{Binding RestoreSessionCommand}" />
+        <Separator />
+        <MenuItem Header="匯出目前投影片為 PNG…" Command="{Binding ExportCurrentSlideCommand}" />
+        <MenuItem Header="匯出全部投影片為 PNG…" Command="{Binding ExportAllSlidesCommand}" />
+        <Separator />
+        <MenuItem Header="關閉(_C)" Command="{Binding CloseDocumentCommand}" />
+        <MenuItem Header="結束(_X)" Command="{Binding ExitAppCommand}" InputGesture="Alt+F4" />
+      </MenuItem>
+      <MenuItem Header="編輯(_E)">
+        <MenuItem Header="尋找(_F)…" Command="{Binding ToggleFindBarCommand}" InputGesture="Ctrl+F" />
+        <MenuItem Header="下一個" Command="{Binding FindNextCommand}" InputGesture="F3" />
+        <MenuItem Header="上一個" Command="{Binding FindPreviousCommand}" InputGesture="Shift+F3" />
+        <Separator />
+        <MenuItem Header="移至投影片…" Command="{Binding GoToSlideCommand}" InputGesture="Ctrl+G" />
+        <MenuItem Header="第一張" Command="{Binding FirstSlideCommand}" InputGesture="Home" />
+        <MenuItem Header="最後一張" Command="{Binding LastSlideCommand}" InputGesture="End" />
+      </MenuItem>
+      <MenuItem Header="檢視(_V)">
+        <MenuItem Header="一般(_N)" Command="{Binding SetNormalViewCommand}" InputGesture="Ctrl+1" />
+        <MenuItem Header="投影片瀏覽(_S)" Command="{Binding SetSorterViewCommand}" InputGesture="Ctrl+2" />
+        <MenuItem Header="大綱(_L)" Command="{Binding SetOutlineViewCommand}" InputGesture="Ctrl+3" />
+        <Separator />
+        <MenuItem Header="投影片窗格" Command="{Binding ToggleThumbnailsCommand}" />
+        <MenuItem Header="備註窗格" Command="{Binding ToggleNotesPaneCommand}" />
+        <Separator />
+        <MenuItem Header="介面風格">
+          <MenuItem Header="LibreOffice Impress" Command="{Binding SetSkinLibreOfficeCommand}" />
+          <MenuItem Header="Google 簡報" Command="{Binding SetSkinGoogleSlidesCommand}" />
+          <MenuItem Header="WPS Presentation" Command="{Binding SetSkinWpsCommand}" />
+          <MenuItem Header="FreeOffice Presentations" Command="{Binding SetSkinFreeOfficeCommand}" />
+          <MenuItem Header="Microsoft PowerPoint" Command="{Binding SetSkinPowerPointCommand}" />
+        </MenuItem>
+        <Separator />
+        <MenuItem Header="符合視窗" Command="{Binding FitToWindowCommand}" />
+        <MenuItem Header="實際大小 100%" Command="{Binding ZoomResetCommand}" InputGesture="Ctrl+0" />
+        <MenuItem Header="放大" Command="{Binding ZoomInCommand}" InputGesture="Ctrl+OemPlus" />
+        <MenuItem Header="縮小" Command="{Binding ZoomOutCommand}" InputGesture="Ctrl+OemMinus" />
+      </MenuItem>
+      <MenuItem Header="投影片放映(_D)">
+        <MenuItem Header="從頭開始放映" Command="{Binding StartSlideShowFromBeginningCommand}" InputGesture="F5" />
+        <MenuItem Header="從目前投影片放映" Command="{Binding StartSlideShowCommand}" InputGesture="Shift+F5" />
+        <Separator />
+        <MenuItem Header="{Binding AutoPlayButtonText}" Command="{Binding ToggleAutoPlayCommand}" />
+        <MenuItem Header="從頭自動放映" Command="{Binding StartAutoPlayFromBeginningCommand}" />
+        <MenuItem Header="停止自動放映" Command="{Binding StopAutoPlayCommand}" />
+      </MenuItem>
+      <MenuItem Header="工具(_T)">
+        <MenuItem Header="自動儲存" Command="{Binding ToggleAutoSaveCommand}" />
+        <MenuItem Header="立即儲存工作階段" Command="{Binding SaveNowCommand}" />
+      </MenuItem>
+      <MenuItem Header="說明(_H)">
+        <MenuItem Header="關於 PptxAvalonia" Command="{Binding ShowAboutCommand}" />
+      </MenuItem>
+    </Menu>
+
+    <Border DockPanel.Dock="Top" IsVisible="{Binding IsChromeClassic}"
+            Background="{DynamicResource UiToolbarBrush}"
+            BorderBrush="{DynamicResource UiBorderLightBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="4,3">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+          <Button Classes="ui-tool" Content="開啟" Command="{Binding OpenFileCommand}" ToolTip.Tip="開啟 (Ctrl+O)" />
+          <Button Classes="ui-tool" Content="儲存" Command="{Binding SaveNowCommand}" ToolTip.Tip="儲存工作階段 (Ctrl+S)" />
+          <Button Classes="ui-tool" Content="匯出" Command="{Binding ExportCurrentSlideCommand}" ToolTip.Tip="匯出 PNG" />
+          <Separator Classes="ui-v" />
+          <Button Classes="ui-icon" Content="◀" Command="{Binding PreviousSlideCommand}" ToolTip.Tip="上一張" />
+          <Border Background="{DynamicResource UiSurfaceBrush}" BorderBrush="{DynamicResource UiBorderBrush}"
+                  BorderThickness="1" Padding="8,3" MinWidth="64" VerticalAlignment="Center">
+            <TextBlock Text="{Binding PageLabel}" HorizontalAlignment="Center" FontWeight="SemiBold" FontSize="11" />
+          </Border>
+          <Button Classes="ui-icon" Content="▶" Command="{Binding NextSlideCommand}" ToolTip.Tip="下一張" />
+          <Button Classes="ui-tool" Content="移至…" Command="{Binding GoToSlideCommand}" />
+          <Separator Classes="ui-v" />
+          <Button Classes="ui-primary" Content="▶ 放映" Command="{Binding StartSlideShowCommand}" ToolTip.Tip="Shift+F5" />
+          <Button Classes="ui-default" Content="從頭放映" Command="{Binding StartSlideShowFromBeginningCommand}" ToolTip.Tip="F5" />
+          <Separator Classes="ui-v" />
+          <Button Classes="ui-tool" Content="{Binding AutoPlayButtonText}" Command="{Binding ToggleAutoPlayCommand}" />
+          <ComboBox ItemsSource="{Binding IntervalOptions}" SelectedItem="{Binding AutoPlayIntervalSeconds}" Width="56"
+                    ToolTip.Tip="自動放映間隔（秒）" />
+          <CheckBox Content="循環" IsChecked="{Binding LoopAutoPlay}" VerticalAlignment="Center" Margin="4,0,0,0" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+          <CheckBox Content="自動儲存" IsChecked="{Binding AutoSaveEnabled, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,6,0" />
+          <TextBlock Text="{Binding FileName}" Classes="ui-muted" VerticalAlignment="Center" MaxWidth="220"
+                     TextTrimming="CharacterEllipsis" Margin="0,0,8,0" IsVisible="{Binding HasDocument}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border DockPanel.Dock="Top" IsVisible="{Binding IsChromeClassic}"
+            Background="{DynamicResource UiToolbarBrush}"
+            BorderBrush="{DynamicResource UiBorderLightBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="4,2">
+      <StackPanel Orientation="Horizontal" Spacing="2">
+        <TextBlock Text="檢視：" Classes="ui-muted" VerticalAlignment="Center" Margin="4,0,4,0" />
+        <Button Content="一般" Command="{Binding SetNormalViewCommand}" Classes="ui-tog" Classes.active="{Binding IsNormalView}" />
+        <Button Content="瀏覽" Command="{Binding SetSorterViewCommand}" Classes="ui-tog" Classes.active="{Binding IsSorterView}" />
+        <Button Content="大綱" Command="{Binding SetOutlineViewCommand}" Classes="ui-tog" Classes.active="{Binding IsOutlineView}" />
+        <Separator Classes="ui-v" />
+        <Button Classes="ui-tool" Content="投影片窗格" Command="{Binding ToggleThumbnailsCommand}" />
+        <Button Classes="ui-tool" Content="備註" Command="{Binding ToggleNotesPaneCommand}" />
+        <Separator Classes="ui-v" />
+        <Button Classes="ui-tool" Content="符合視窗" Command="{Binding FitToWindowCommand}" />
+        <Button Classes="ui-icon" Content="−" Command="{Binding ZoomOutCommand}" />
+        <Border Background="{DynamicResource UiSurfaceBrush}" BorderBrush="{DynamicResource UiBorderBrush}"
+                BorderThickness="1" Padding="8,3" MinWidth="88" VerticalAlignment="Center">
+          <TextBlock Text="{Binding ZoomLabel}" HorizontalAlignment="Center" FontSize="11" />
+        </Border>
+        <Button Classes="ui-icon" Content="＋" Command="{Binding ZoomInCommand}" />
+        <Button Classes="ui-tool" Content="100%" Command="{Binding ZoomResetCommand}" />
+      </StackPanel>
+    </Border>
+
+    <!-- ═══════════ Google Slides chrome ═══════════ -->
+    <Border DockPanel.Dock="Top" IsVisible="{Binding IsChromeGoogle}"
+            Background="{DynamicResource UiChromeBrush}"
+            BorderBrush="{DynamicResource UiBorderLightBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="12,8">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <Border Width="36" Height="36" CornerRadius="8" Background="{DynamicResource UiAccentBrush}">
+            <TextBlock Text="▶" FontSize="16" Foreground="White"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <StackPanel Spacing="2">
+            <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="Medium" MaxWidth="360"
+                       TextTrimming="CharacterEllipsis" />
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <Button Classes="ui-gs" Content="檔案" Command="{Binding OpenFileCommand}" Padding="8,2" FontSize="12" MinHeight="24" />
+              <Button Classes="ui-gs" Content="尋找" Command="{Binding ToggleFindBarCommand}" Padding="8,2" FontSize="12" MinHeight="24" />
+              <Button Classes="ui-gs" Content="檢視" Command="{Binding SetNormalViewCommand}" Padding="8,2" FontSize="12" MinHeight="24" />
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+          <Button Classes="ui-gs" Content="一般" Command="{Binding SetNormalViewCommand}" />
+          <Button Classes="ui-gs" Content="格狀" Command="{Binding SetSorterViewCommand}" />
+          <Button Classes="ui-gs" Content="大綱" Command="{Binding SetOutlineViewCommand}" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Button Classes="ui-gs" Content="風格" ToolTip.Tip="切換介面風格">
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedRight">
+                <MenuItem Header="LibreOffice Impress" Command="{Binding SetSkinLibreOfficeCommand}" />
+                <MenuItem Header="Google 簡報" Command="{Binding SetSkinGoogleSlidesCommand}" />
+                <MenuItem Header="WPS Presentation" Command="{Binding SetSkinWpsCommand}" />
+                <MenuItem Header="FreeOffice Presentations" Command="{Binding SetSkinFreeOfficeCommand}" />
+                <MenuItem Header="Microsoft PowerPoint" Command="{Binding SetSkinPowerPointCommand}" />
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+          <Button Classes="ui-gs-primary" Content="▶  簡報" Command="{Binding StartSlideShowCommand}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border DockPanel.Dock="Top" IsVisible="{Binding IsChromeGoogle}"
+            Background="{DynamicResource UiToolbarBrush}"
+            BorderBrush="{DynamicResource UiBorderLightBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="10,4">
+      <StackPanel Orientation="Horizontal" Spacing="4">
+        <Button Classes="ui-icon" Content="📂" Command="{Binding OpenFileCommand}" ToolTip.Tip="開啟" />
+        <Button Classes="ui-icon" Content="💾" Command="{Binding SaveNowCommand}" ToolTip.Tip="儲存工作階段" />
+        <Separator Classes="ui-v" />
+        <Button Classes="ui-icon" Content="◀" Command="{Binding PreviousSlideCommand}" />
+        <Border Background="{DynamicResource UiSurfaceBrush}" BorderBrush="{DynamicResource UiBorderBrush}"
+                BorderThickness="1" CornerRadius="4" Padding="10,3" MinWidth="72" VerticalAlignment="Center">
+          <TextBlock Text="{Binding PageLabel}" HorizontalAlignment="Center" FontWeight="SemiBold" FontSize="12" />
+        </Border>
+        <Button Classes="ui-icon" Content="▶" Command="{Binding NextSlideCommand}" />
+        <Separator Classes="ui-v" />
+        <Button Classes="ui-tool" Content="尋找" Command="{Binding ToggleFindBarCommand}" />
+        <Button Classes="ui-tool" Content="備註" Command="{Binding ToggleNotesPaneCommand}" />
+        <Button Classes="ui-tool" Content="縮圖" Command="{Binding ToggleThumbnailsCommand}" />
+        <Separator Classes="ui-v" />
+        <Button Classes="ui-tool" Content="符合" Command="{Binding FitToWindowCommand}" />
+        <Button Classes="ui-icon" Content="−" Command="{Binding ZoomOutCommand}" />
+        <TextBlock Text="{Binding ZoomLabel}" VerticalAlignment="Center" Classes="ui-muted" MinWidth="72" TextAlignment="Center" />
+        <Button Classes="ui-icon" Content="＋" Command="{Binding ZoomInCommand}" />
+        <Separator Classes="ui-v" />
+        <Button Classes="ui-tool" Content="{Binding AutoPlayButtonText}" Command="{Binding ToggleAutoPlayCommand}" />
+        <ComboBox ItemsSource="{Binding IntervalOptions}" SelectedItem="{Binding AutoPlayIntervalSeconds}" Width="56" />
+        <CheckBox Content="循環" IsChecked="{Binding LoopAutoPlay}" VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+
+    <!-- ═══════════ Ribbon chrome (PowerPoint / WPS / FreeOffice) ═══════════ -->
+    <Border DockPanel.Dock="Top" IsVisible="{Binding IsChromeRibbon}"
+            Background="{DynamicResource UiQatBrush}"
+            BorderBrush="{DynamicResource UiBorderLightBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="6,2">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="2">
+          <Button Classes="ui-qat" Content="開啟" Command="{Binding OpenFileCommand}" />
+          <Button Classes="ui-qat" Content="儲存" Command="{Binding SaveNowCommand}" />
+          <Button Classes="ui-qat" Content="還原" Command="{Binding RestoreSessionCommand}" />
+          <Separator Classes="ui-v" />
+          <Button Classes="ui-qat" Content="撤銷" IsEnabled="False" Opacity="0.45" ToolTip.Tip="預覽模式不支援" />
+          <Button Classes="ui-qat" Content="重做" IsEnabled="False" Opacity="0.45" ToolTip.Tip="預覽模式不支援" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <TextBlock Text="{Binding SkinDisplayName}" Classes="ui-muted" VerticalAlignment="Center" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding FileName}" Classes="ui-muted" VerticalAlignment="Center" MaxWidth="240"
+                     TextTrimming="CharacterEllipsis" IsVisible="{Binding HasDocument}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border DockPanel.Dock="Top" IsVisible="{Binding IsChromeRibbon}"
+            Background="{DynamicResource UiRibbonTabBarBrush}" Padding="0">
+      <StackPanel Orientation="Horizontal">
+        <Button Classes="ui-tab-file" Content="檔案" Command="{Binding OpenFileCommand}" />
+        <Button Classes="ui-tab active" Content="常用" />
+        <Button Classes="ui-tab" Content="插入" IsEnabled="False" Opacity="0.7" />
+        <Button Classes="ui-tab" Content="設計" IsEnabled="False" Opacity="0.7" />
+        <Button Classes="ui-tab" Content="轉場" IsEnabled="False" Opacity="0.7" />
+        <Button Classes="ui-tab" Content="投影片放映" Command="{Binding StartSlideShowCommand}" />
+        <Button Classes="ui-tab" Content="檢視" Command="{Binding SetNormalViewCommand}" />
+        <Button Classes="ui-tab" Content="說明" Command="{Binding ShowAboutCommand}" />
+      </StackPanel>
+    </Border>
+
+    <Border DockPanel.Dock="Top" IsVisible="{Binding IsChromeRibbon}"
+            Background="{DynamicResource UiRibbonBodyBrush}"
+            BorderBrush="{DynamicResource UiBorderLightBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="8,6">
+      <StackPanel Orientation="Horizontal" Spacing="0">
+        <!-- Clipboard-ish group -->
+        <StackPanel MinWidth="70" Margin="0,0,4,0">
+          <Button Classes="ui-cmd-lg" Command="{Binding OpenFileCommand}">
+            <StackPanel Spacing="2">
+              <TextBlock Text="📂" FontSize="18" HorizontalAlignment="Center" />
+              <TextBlock Text="開啟" HorizontalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <TextBlock Text="檔案" Classes="ui-group-label" />
+        </StackPanel>
+        <Border Classes="ui-group-sep" />
+
+        <!-- Slides nav -->
+        <StackPanel MinWidth="120" Margin="4,0">
+          <StackPanel Orientation="Horizontal" Spacing="2" HorizontalAlignment="Center">
+            <Button Classes="ui-cmd" Content="◀ 上一張" Command="{Binding PreviousSlideCommand}" />
+            <Button Classes="ui-cmd" Content="下一張 ▶" Command="{Binding NextSlideCommand}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" Margin="0,4,0,0">
+            <Border Background="{DynamicResource UiSurfaceBrush}" BorderBrush="{DynamicResource UiBorderBrush}"
+                    BorderThickness="1" Padding="8,2" MinWidth="64">
+              <TextBlock Text="{Binding PageLabel}" FontWeight="SemiBold" FontSize="11" HorizontalAlignment="Center" />
+            </Border>
+            <Button Classes="ui-cmd" Content="移至…" Command="{Binding GoToSlideCommand}" />
+          </StackPanel>
+          <TextBlock Text="投影片" Classes="ui-group-label" />
+        </StackPanel>
+        <Border Classes="ui-group-sep" />
+
+        <!-- Show -->
+        <StackPanel MinWidth="150" Margin="4,0">
+          <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+            <Button Classes="ui-cmd-lg" Command="{Binding StartSlideShowFromBeginningCommand}">
+              <StackPanel>
+                <TextBlock Text="▶" FontSize="18" HorizontalAlignment="Center" Foreground="{DynamicResource UiAccentBrush}" />
+                <TextBlock Text="從頭放映" HorizontalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <Button Classes="ui-cmd-lg" Command="{Binding StartSlideShowCommand}">
+              <StackPanel>
+                <TextBlock Text="▷" FontSize="18" HorizontalAlignment="Center" />
+                <TextBlock Text="目前放映" HorizontalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+          <TextBlock Text="投影片放映" Classes="ui-group-label" />
+        </StackPanel>
+        <Border Classes="ui-group-sep" />
+
+        <!-- View modes -->
+        <StackPanel MinWidth="160" Margin="4,0">
+          <StackPanel Orientation="Horizontal" Spacing="2" HorizontalAlignment="Center">
+            <Button Classes="ui-tog" Content="一般" Command="{Binding SetNormalViewCommand}" Classes.active="{Binding IsNormalView}" />
+            <Button Classes="ui-tog" Content="瀏覽" Command="{Binding SetSorterViewCommand}" Classes.active="{Binding IsSorterView}" />
+            <Button Classes="ui-tog" Content="大綱" Command="{Binding SetOutlineViewCommand}" Classes.active="{Binding IsOutlineView}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="2" HorizontalAlignment="Center" Margin="0,4,0,0">
+            <Button Classes="ui-cmd" Content="縮圖" Command="{Binding ToggleThumbnailsCommand}" />
+            <Button Classes="ui-cmd" Content="備註" Command="{Binding ToggleNotesPaneCommand}" />
+            <Button Classes="ui-cmd" Content="尋找" Command="{Binding ToggleFindBarCommand}" />
+          </StackPanel>
+          <TextBlock Text="檢視" Classes="ui-group-label" />
+        </StackPanel>
+        <Border Classes="ui-group-sep" />
+
+        <!-- Zoom / autoplay -->
+        <StackPanel MinWidth="180" Margin="4,0">
+          <StackPanel Orientation="Horizontal" Spacing="2" HorizontalAlignment="Center">
+            <Button Classes="ui-cmd" Content="符合" Command="{Binding FitToWindowCommand}" />
+            <Button Classes="ui-cmd" Content="−" Command="{Binding ZoomOutCommand}" />
+            <Border Background="{DynamicResource UiSurfaceBrush}" BorderBrush="{DynamicResource UiBorderBrush}"
+                    BorderThickness="1" Padding="6,2" MinWidth="72" VerticalAlignment="Center">
+              <TextBlock Text="{Binding ZoomLabel}" FontSize="11" HorizontalAlignment="Center" />
+            </Border>
+            <Button Classes="ui-cmd" Content="＋" Command="{Binding ZoomInCommand}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" Margin="0,4,0,0">
+            <Button Classes="ui-cmd" Content="{Binding AutoPlayButtonText}" Command="{Binding ToggleAutoPlayCommand}" />
+            <ComboBox ItemsSource="{Binding IntervalOptions}" SelectedItem="{Binding AutoPlayIntervalSeconds}" Width="52" />
+            <CheckBox Content="循環" IsChecked="{Binding LoopAutoPlay}" VerticalAlignment="Center" />
+          </StackPanel>
+          <TextBlock Text="縮放 / 自動放映" Classes="ui-group-label" />
+        </StackPanel>
+        <Border Classes="ui-group-sep" />
+
+        <!-- Skin -->
+        <StackPanel MinWidth="110" Margin="4,0">
+          <Button Classes="ui-cmd-lg">
+            <Button.Flyout>
+              <MenuFlyout Placement="Bottom">
+                <MenuItem Header="LibreOffice Impress" Command="{Binding SetSkinLibreOfficeCommand}" />
+                <MenuItem Header="Google 簡報" Command="{Binding SetSkinGoogleSlidesCommand}" />
+                <MenuItem Header="WPS Presentation" Command="{Binding SetSkinWpsCommand}" />
+                <MenuItem Header="FreeOffice Presentations" Command="{Binding SetSkinFreeOfficeCommand}" />
+                <MenuItem Header="Microsoft PowerPoint" Command="{Binding SetSkinPowerPointCommand}" />
+              </MenuFlyout>
+            </Button.Flyout>
+            <StackPanel>
+              <TextBlock Text="🎨" FontSize="16" HorizontalAlignment="Center" />
+              <TextBlock Text="介面風格" HorizontalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <TextBlock Text="外觀" Classes="ui-group-label" />
+        </StackPanel>
+        <Border Classes="ui-group-sep" />
+
+        <!-- Export -->
+        <StackPanel MinWidth="90" Margin="4,0">
+          <Button Classes="ui-cmd-lg" Command="{Binding ExportCurrentSlideCommand}">
+            <StackPanel>
+              <TextBlock Text="🖼" FontSize="16" HorizontalAlignment="Center" />
+              <TextBlock Text="匯出 PNG" HorizontalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <TextBlock Text="匯出" Classes="ui-group-label" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- Shared find bar -->
+    <Border DockPanel.Dock="Top"
+            IsVisible="{Binding ShowFindBar}"
+            Background="{DynamicResource UiAccentSoftBrush}"
+            BorderBrush="{DynamicResource UiBorderLightBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="8,5">
+      <StackPanel Orientation="Horizontal" Spacing="6">
+        <TextBlock Text="尋找：" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="12" />
+        <TextBox Classes="ui-input" Text="{Binding FindQuery}" Width="240"
+                 Watermark="投影片文字、備註…" VerticalAlignment="Center" />
+        <Button Classes="ui-default" Content="下一個" Command="{Binding FindNextCommand}" />
+        <Button Classes="ui-default" Content="上一個" Command="{Binding FindPreviousCommand}" />
+        <TextBlock Text="{Binding FindStatus}" VerticalAlignment="Center" Classes="ui-muted" MinWidth="100" />
+        <Button Classes="ui-icon" Content="✕" Command="{Binding ToggleFindBarCommand}" ToolTip.Tip="關閉" />
+      </StackPanel>
+    </Border>
+
+    <!-- Status bar -->
+    <Border DockPanel.Dock="Bottom"
+            Background="{DynamicResource UiStatusBrush}"
+            BorderBrush="{DynamicResource UiBorderBrush}"
+            BorderThickness="0,1,0,0"
+            Height="24">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto">
+        <Border BorderBrush="{DynamicResource UiBorderLightBrush}" BorderThickness="0,0,1,0" Padding="8,0">
+          <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" FontSize="11" TextTrimming="CharacterEllipsis" />
+        </Border>
+        <Border Grid.Column="1" BorderBrush="{DynamicResource UiBorderLightBrush}" BorderThickness="0,0,1,0"
+                Padding="10,0" IsVisible="{Binding IsAutoPlaying}">
+          <TextBlock Text="{Binding AutoPlayStatus}" VerticalAlignment="Center" FontSize="11"
+                     FontWeight="SemiBold" Foreground="{DynamicResource UiAccentDarkBrush}" />
+        </Border>
+        <Border Grid.Column="2" BorderBrush="{DynamicResource UiBorderLightBrush}" BorderThickness="0,0,1,0" Padding="10,0">
+          <TextBlock Text="{Binding AutoSaveStatus}" VerticalAlignment="Center" FontSize="11" Classes="ui-muted" />
+        </Border>
+        <Border Grid.Column="3" BorderBrush="{DynamicResource UiBorderLightBrush}" BorderThickness="0,0,1,0" Padding="10,0">
+          <TextBlock Text="{Binding SkinDisplayName}" VerticalAlignment="Center" FontSize="11" Classes="ui-muted" />
+        </Border>
+        <Border Grid.Column="4" BorderBrush="{DynamicResource UiBorderLightBrush}" BorderThickness="0,0,1,0" Padding="10,0">
+          <TextBlock Text="{Binding ZoomLabel}" VerticalAlignment="Center" FontSize="11" />
+        </Border>
+        <Border Grid.Column="5" BorderBrush="{DynamicResource UiBorderLightBrush}" BorderThickness="0,0,1,0" Padding="10,0">
+          <TextBlock Text="{Binding PageLabel}" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" />
+        </Border>
+        <Border Grid.Column="6" Background="{DynamicResource UiAccentBrush}" Width="18" />
+      </Grid>
+    </Border>
+
+    <!-- ═══════════ Body ═══════════ -->
+    <Grid Background="{DynamicResource UiCanvasBrush}">
+      <!-- Empty / start center -->
+      <Border IsVisible="{Binding !HasDocument}" Background="{DynamicResource UiCanvasBrush}">
+        <Border Background="{DynamicResource UiSurfaceBrush}"
+                BorderBrush="{DynamicResource UiBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="36,32"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                MaxWidth="560">
+          <StackPanel Spacing="0">
+            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,16">
+              <Border Width="40" Height="40" Background="{DynamicResource UiAccentBrush}" CornerRadius="4">
+                <TextBlock Text="◈" FontSize="20" Foreground="White"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="PptxAvalonia" FontSize="20" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding EmptyStateSubtitle}" Classes="ui-muted" />
+              </StackPanel>
+            </StackPanel>
+
+            <TextBlock Text="開啟 .pptx / .ppt / .odp 以預覽、瀏覽大綱與全螢幕放映。可在「介面風格」切換五種外觀。"
+                       TextWrapping="Wrap" FontSize="12" Margin="0,0,0,18"
+                       Foreground="{DynamicResource UiMutedBrush}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
+              <Button Classes="ui-primary" Content="開啟簡報…" Command="{Binding OpenFileCommand}" Padding="16,7" />
+              <Button Classes="ui-default" Content="還原工作階段" Command="{Binding RestoreSessionCommand}" Padding="12,7" />
+            </StackPanel>
+
+            <TextBlock Text="介面風格" Classes="ui-pane-title" Margin="0,0,0,8" />
+            <WrapPanel Margin="0,0,0,16">
+              <Button Classes="ui-tool" Content="Impress" Command="{Binding SetSkinLibreOfficeCommand}" Margin="0,0,6,6" />
+              <Button Classes="ui-tool" Content="Google" Command="{Binding SetSkinGoogleSlidesCommand}" Margin="0,0,6,6" />
+              <Button Classes="ui-tool" Content="WPS" Command="{Binding SetSkinWpsCommand}" Margin="0,0,6,6" />
+              <Button Classes="ui-tool" Content="FreeOffice" Command="{Binding SetSkinFreeOfficeCommand}" Margin="0,0,6,6" />
+              <Button Classes="ui-tool" Content="PowerPoint" Command="{Binding SetSkinPowerPointCommand}" Margin="0,0,6,6" />
+            </WrapPanel>
+
+            <Border IsVisible="{Binding HasRecentFiles}"
+                    BorderBrush="{DynamicResource UiBorderLightBrush}"
+                    BorderThickness="0,1,0,0"
+                    Padding="0,14,0,0">
+              <StackPanel Spacing="6">
+                <TextBlock Text="最近的檔案" Classes="ui-pane-title" Margin="0,0,0,4" />
+                <ItemsControl ItemsSource="{Binding RecentFileItems}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:RecentFileItemViewModel">
+                      <Button Classes="ui-tool" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                              Command="{Binding OpenCommand}" CommandParameter="{Binding Path}" Padding="6,5">
+                        <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" MaxWidth="400" />
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+
+            <TextBlock Text="拖放 .pptx / .ppt / .odp · F5 放映 · Ctrl+F 尋找 · Ctrl+1/2/3 切換檢視"
+                       Classes="ui-muted" Margin="0,16,0,0" Opacity="0.9" />
+          </StackPanel>
+        </Border>
+      </Border>
+
+      <!-- Document views -->
+      <Grid IsVisible="{Binding HasDocument}">
+        <Grid IsVisible="{Binding IsNormalView}" ColumnDefinitions="Auto,*,Auto" RowDefinitions="*,Auto">
+          <Border Grid.RowSpan="2" Grid.Column="0" Width="180"
+                  IsVisible="{Binding ShowThumbnails}"
+                  Background="{DynamicResource UiSidebarBrush}"
+                  BorderBrush="{DynamicResource UiBorderBrush}"
+                  BorderThickness="0,0,1,0">
+            <DockPanel>
+              <Border DockPanel.Dock="Top"
+                      Background="{DynamicResource UiSidebarHeaderBrush}"
+                      BorderBrush="{DynamicResource UiBorderLightBrush}"
+                      BorderThickness="0,0,0,1"
+                      Padding="8,5">
+                <TextBlock Text="投影片" Classes="ui-pane-title" />
+              </Border>
+              <ListBox Classes="ui-slides"
+                       ItemsSource="{Binding Slides}"
+                       SelectedItem="{Binding SelectedSlide}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:SlideItemViewModel">
+                    <Grid ColumnDefinitions="20,*">
+                      <TextBlock Grid.Column="0" Text="{Binding DisplayNumber}" FontSize="10"
+                                 Foreground="{DynamicResource UiMutedBrush}" VerticalAlignment="Top"
+                                 Margin="0,2,2,0" HorizontalAlignment="Right" />
+                      <Border Grid.Column="1" Classes="ui-thumb" Background="White"
+                              BorderBrush="{DynamicResource UiBorderBrush}" BorderThickness="1"
+                              Padding="1" ClipToBounds="True">
+                        <Panel>
+                          <Border IsVisible="{Binding IsFindMatch}"
+                                  BorderBrush="{DynamicResource UiFindBrush}"
+                                  BorderThickness="2" ZIndex="2" IsHitTestVisible="False" />
+                          <ContentControl Content="{Binding Thumbnail}" HorizontalAlignment="Center" />
+                          <TextBlock Text="✎" IsVisible="{Binding HasNotes}" FontSize="10"
+                                     HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                     Margin="0,0,2,1" Opacity="0.65" />
+                        </Panel>
+                      </Border>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </DockPanel>
+          </Border>
+
+          <Border x:Name="PreviewHost" Grid.Column="1" Grid.Row="0"
+                  Background="{DynamicResource UiCanvasBrush}">
+            <ScrollViewer x:Name="PreviewScroller" Padding="24"
+                          HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto"
+                          IsVisible="{Binding HasDocument}">
+              <Viewbox x:Name="SlideViewbox" Stretch="Uniform" StretchDirection="Both"
+                       HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border Background="White" BorderBrush="#404040" BorderThickness="1"
+                        BoxShadow="2 2 0 #40000000" ClipToBounds="True"
+                        Width="{Binding SlideNativeWidth}" Height="{Binding SlideNativeHeight}">
+                  <ContentControl Content="{Binding CurrentSlideView}"
+                                  Width="{Binding SlideNativeWidth}"
+                                  Height="{Binding SlideNativeHeight}" />
+                </Border>
+              </Viewbox>
+            </ScrollViewer>
+          </Border>
+
+          <Border Grid.Column="2" Grid.Row="0" Width="220"
+                  Background="{DynamicResource UiSidebarBrush}"
+                  BorderBrush="{DynamicResource UiBorderBrush}"
+                  BorderThickness="1,0,0,0"
+                  IsVisible="{Binding HasDocument}">
+            <DockPanel>
+              <Border DockPanel.Dock="Top"
+                      Background="{DynamicResource UiSidebarHeaderBrush}"
+                      BorderBrush="{DynamicResource UiBorderLightBrush}"
+                      BorderThickness="0,0,0,1"
+                      Padding="8,5">
+                <TextBlock Text="內容 / 屬性" Classes="ui-pane-title" />
+              </Border>
+              <ScrollViewer Padding="10,8">
+                <StackPanel Spacing="10">
+                  <TextBlock Text="此頁文字" FontSize="11" FontWeight="SemiBold"
+                             Foreground="{DynamicResource UiMutedBrush}" />
+                  <TextBlock Text="{Binding CurrentOutline}" TextWrapping="Wrap" FontSize="12"
+                             LineHeight="20" Foreground="{DynamicResource UiInkBrush}" />
+                </StackPanel>
+              </ScrollViewer>
+            </DockPanel>
+          </Border>
+
+          <Border Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="1" Height="128"
+                  IsVisible="{Binding ShowNotesPane}"
+                  Background="{DynamicResource UiSurfaceBrush}"
+                  BorderBrush="{DynamicResource UiBorderBrush}"
+                  BorderThickness="0,1,0,0">
+            <DockPanel>
+              <Border DockPanel.Dock="Top"
+                      Background="{DynamicResource UiSidebarHeaderBrush}"
+                      BorderBrush="{DynamicResource UiBorderLightBrush}"
+                      BorderThickness="0,0,0,1"
+                      Padding="8,4">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="備註" Classes="ui-pane-title" VerticalAlignment="Center" />
+                  <Button Grid.Column="1" Classes="ui-tool" Content="隱藏"
+                          Command="{Binding ToggleNotesPaneCommand}" Padding="6,1" FontSize="11" />
+                </Grid>
+              </Border>
+              <ScrollViewer Padding="10,6">
+                <TextBlock Text="{Binding CurrentNotes}" TextWrapping="Wrap" FontSize="12"
+                           LineHeight="20" Foreground="{DynamicResource UiInkBrush}" />
+              </ScrollViewer>
+            </DockPanel>
+          </Border>
+        </Grid>
+
+        <ScrollViewer IsVisible="{Binding IsSorterView}" Padding="20"
+                      Background="{DynamicResource UiCanvasBrush}">
+          <ItemsControl ItemsSource="{Binding Slides}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:SlideItemViewModel">
+                <Border Margin="10" Width="210" Cursor="Hand"
+                        PointerPressed="OnSorterItemPressed" Background="Transparent">
+                  <StackPanel Spacing="6">
+                    <Border Background="White" BorderBrush="{DynamicResource UiBorderBrush}"
+                            BorderThickness="1" BoxShadow="2 2 0 #40000000" ClipToBounds="True">
+                      <ContentControl Content="{Binding Thumbnail}" HorizontalAlignment="Center" />
+                    </Border>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <TextBlock Text="{Binding DisplayNumber}" FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                      <TextBlock Text="{Binding Title}" FontSize="11" Foreground="#F0F0F0"
+                                 TextTrimming="CharacterEllipsis" MaxWidth="170" />
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+
+        <ListBox IsVisible="{Binding IsOutlineView}"
+                 ItemsSource="{Binding Slides}"
+                 SelectedItem="{Binding SelectedSlide}"
+                 Background="{DynamicResource UiSurfaceBrush}"
+                 Padding="10,8">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:SlideItemViewModel">
+              <Border Padding="10,8" Margin="0,0,0,6"
+                      Background="{DynamicResource UiSidebarBrush}"
+                      BorderBrush="{DynamicResource UiBorderLightBrush}"
+                      BorderThickness="1">
+                <StackPanel Spacing="4">
+                  <TextBlock FontWeight="SemiBold" FontSize="13">
+                    <Run Text="{Binding DisplayNumber}" /><Run Text=". " /><Run Text="{Binding Title}" />
+                  </TextBlock>
+                  <TextBlock Text="{Binding OutlineText}" TextWrapping="Wrap" FontSize="12"
+                             Foreground="{DynamicResource UiMutedBrush}" LineHeight="18" />
+                  <TextBlock Text="{Binding NotesText}" TextWrapping="Wrap" FontSize="11"
+                             Foreground="{DynamicResource UiMutedBrush}" Opacity="0.85"
+                             IsVisible="{Binding HasNotes}" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </Grid>
+  </DockPanel>
+</Window>

@@ -1,0 +1,11 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+_gen/
+*.DotSettings.user
+
+artifacts/
+

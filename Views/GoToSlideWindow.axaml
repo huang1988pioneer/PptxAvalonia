@@ -1,0 +1,22 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PptxAvalonia.Views.GoToSlideWindow"
+        Title="移至投影片"
+        Width="360" Height="170"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        SystemDecorations="Full"
+        Background="{DynamicResource UiChromeBrush}">
+  <DockPanel Margin="16" LastChildFill="True">
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="6" Margin="0,16,0,0">
+      <Button Content="確定" Name="OkButton" IsDefault="True" Classes="ui-primary" MinWidth="80" Padding="12,5" />
+      <Button Content="取消" Name="CancelButton" IsCancel="True" Classes="ui-default" MinWidth="80" Padding="12,5" />
+    </StackPanel>
+    <StackPanel Spacing="10">
+      <TextBlock Name="PromptText" Text="投影片編號："
+                 FontSize="12" FontWeight="SemiBold" />
+      <TextBox Name="NumberBox" Classes="ui-input" Watermark="例如 1" FontSize="13" />
+      <TextBlock Text="按 Enter 確認" Classes="ui-muted" />
+    </StackPanel>
+  </DockPanel>
+</Window>

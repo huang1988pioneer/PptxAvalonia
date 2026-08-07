@@ -1,0 +1,137 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag (e.g. v1.0.0)"
+        required: true
+        default: "v1.0.0"
+      create_github_release:
+        description: "Create/update GitHub Release"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Resolve version
+        id: ver
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $v = "${{ inputs.version }}"
+          } else {
+            $v = "${{ github.ref_name }}"
+          }
+          if (-not $v.StartsWith("v")) { $v = "v$v" }
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Version: $v"
+
+      - name: Publish packages (optional sign)
+        shell: pwsh
+        env:
+          CODE_SIGNING_PFX_BASE64: ${{ secrets.CODE_SIGNING_PFX_BASE64 }}
+          CODE_SIGNING_PFX_PASSWORD: ${{ secrets.CODE_SIGNING_PFX_PASSWORD }}
+        run: |
+          # Windows SDK / signtool is available on windows-latest images
+          ./scripts/publish-release.ps1 -Version "${{ steps.ver.outputs.version }}"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-packages
+          path: |
+            artifacts/*.zip
+            artifacts/PACKAGE_REPORT.md
+            artifacts/RELEASE_NOTES.md
+
+      - name: Write release notes
+        shell: pwsh
+        run: |
+          $v = "${{ steps.ver.outputs.version }}"
+          $report = ""
+          if (Test-Path artifacts/PACKAGE_REPORT.md) {
+            $report = Get-Content artifacts/PACKAGE_REPORT.md -Raw
+          }
+          $signed = $report -match "signed \("
+          $signLine = if ($signed) {
+            "本建置已嘗試 **Authenticode 簽署**（見下方報告）。"
+          } else {
+            "本建置**未簽署**（未設定 `CODE_SIGNING_PFX_*` secrets）。在 Windows 11 智慧型應用程式控制下可能被封鎖。"
+          }
+
+          @"
+          ## PptxAvalonia $v
+
+          Avalonia 桌面程式：`.pptx` 預覽、放映、自動儲存等。
+
+          ### 下載說明
+
+          | 檔案 | 說明 |
+          |------|------|
+          | **self-contained** (`PptxAvalonia-$v-win-x64-self-contained.zip`) | 免安裝 .NET，解壓後執行 ``PptxAvalonia.exe``（檔案較大）。內容：``PptxAvalonia.exe``、``PptxAvalonia.pdb``、``demo.pptx`` |
+          | **framework-dependent** (`PptxAvalonia-$v-win-x64-framework-dependent.zip`) | 需 [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)（檔案較小） |
+
+          ### 簽章狀態
+
+          $signLine
+
+          ### 若出現「智慧型應用程式控制已封鎖」
+
+          1. 右鍵 ``PptxAvalonia.exe`` → 內容 → **解除鎖定**
+          2. 設定 → Windows 安全性 → 應用程式及瀏覽器控制項 → 智慧型應用程式控制（評估／關閉）
+          3. 長期解法：設定 GitHub Secrets 的 Code Signing 憑證後重新發 Release（見 ``docs/CODE_SIGNING.md``）
+
+          ### 使用
+
+          1. 下載並解壓
+          2. 執行 ``PptxAvalonia.exe`` 或 ``PptxAvalonia.exe demo.pptx``
+          3. ``F5`` 全螢幕放映
+
+          ### 套件報告
+
+          ``````
+          $report
+          ``````
+          "@ | Set-Content artifacts/RELEASE_NOTES.md -Encoding UTF8
+
+      - name: Create GitHub Release
+        if: ${{ github.event_name == 'push' || inputs.create_github_release }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $v = "${{ steps.ver.outputs.version }}"
+          $sc = "artifacts/PptxAvalonia-$v-win-x64-self-contained.zip"
+          $fd = "artifacts/PptxAvalonia-$v-win-x64-framework-dependent.zip"
+
+          $exists = $false
+          gh release view $v --repo "${{ github.repository }}" 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) { $exists = $true }
+
+          if ($exists) {
+            gh release upload $v $sc $fd --repo "${{ github.repository }}" --clobber
+            gh release edit $v --repo "${{ github.repository }}" --notes-file artifacts/RELEASE_NOTES.md --title $v
+          } else {
+            gh release create $v $sc $fd `
+              --repo "${{ github.repository }}" `
+              --title $v `
+              --notes-file artifacts/RELEASE_NOTES.md `
+              --target "${{ github.sha }}"
+          }
